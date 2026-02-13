@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Scheduling - FYP Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+        }
+
+        .nav-pills .nav-link {
+            color: #333;
+            border-radius: 0;
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        .section-link:hover {
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+
+        .dashboard-card {
+            transition: transform 0.2s;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .text-primary {
+            color: #0d6efd !important;
+        }
+
+        .text-success {
+            color: #198754 !important;
+        }
+
+        .text-info {
+            color: #0dcaf0 !important;
+        }
+
+        .text-warning {
+            color: #ffc107 !important;
+        }
+
+        .text-danger {
+            color: #dc3545 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">FYP Management System</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button"
+                            data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> {{ current_user.first_name }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="bi bi-person"></i>
+                                    Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i
+                                        class="bi bi-box-arrow-right"></i> Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-lg-2 p-0 bg-white sidebar">
+                <div class="d-flex flex-column flex-shrink-0 p-3">
+                    <ul class="nav nav-pills flex-column">
+                        <li class="nav-item">
+                            <a href="{{ url_for('dashboard_admin') }}#dashboard" class="nav-link">
+                                <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ url_for('dashboard_admin') }}#users" class="nav-link">
+                                <i class="bi bi-people me-2"></i> User Management
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ url_for('dashboard_admin') }}#group-projects" class="nav-link">
+                                <i class="bi bi-folder2 me-2"></i> Group Projects
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ url_for('dashboard_admin') }}#reports" class="nav-link">
+                                <i class="bi bi-file-earmark-text me-2"></i> Reports
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ url_for('dashboard_admin') }}#settings" class="nav-link">
+                                <i class="bi bi-gear-fill me-2"></i>Settings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ url_for('admin_scheduling') }}" class="nav-link active">
+                                <i class="bi bi-calendar-week me-2"></i>Academic Scheduling
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ url_for('admin_viva_scheduling') }}" class="nav-link">
+                                <i class="bi bi-calendar-check me-2"></i>Viva Scheduling
+                            </a>
+                        </li>
+                        <li class="nav-item ms-auto">
+                            <a class="nav-link text-danger" href="{{ url_for('logout') }}">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="col-lg-10 p-4">
+                <h2 class="mb-4">Academic Scheduling System</h2>
+
+                <div class="alert alert-info">
+                    <p><i class="bi bi-info-circle"></i> Welcome to the scheduling system. Here you can manage teacher
+                        and room schedules.</p>
+                </div>
+
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs mb-4" id="scheduleTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="teacher-schedule-tab" data-bs-toggle="tab"
+                            data-bs-target="#teacher-schedule" type="button" role="tab" aria-controls="teacher-schedule"
+                            aria-selected="true">Teacher Schedules</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="room-schedule-tab" data-bs-toggle="tab"
+                            data-bs-target="#room-schedule" type="button" role="tab" aria-controls="room-schedule"
+                            aria-selected="false">Room Schedules</button>
+                    </li>
+                </ul>
+
+                <!-- Tab content -->
+                <div class="tab-content" id="scheduleTabsContent">
+                    <!-- Teacher Schedule Tab -->
+                    <div class="tab-pane fade show active" id="teacher-schedule" role="tabpanel"
+                        aria-labelledby="teacher-schedule-tab">
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">Add Faculty Schedule</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <form action="{{ url_for('admin_add_teacher_schedule') }}" method="POST">
+                                            <div class="mb-3">
+                                                <label for="teacher" class="form-label">Faculty</label>
+                                                <select class="form-select" id="teacher" name="teacher_id" required>
+                                                    <option value="">Select a faculty member</option>
+                                                    {% for teacher in faculty %}
+                                                    <option value="{{ teacher.id }}">{{ teacher.first_name }} {{
+                                                        teacher.last_name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="time_slot" class="form-label">Time Slot</label>
+                                                <select class="form-select" id="time_slot" name="time_slot_id" required>
+                                                    <option value="">Select a time slot</option>
+                                                    {% for day in days %}
+                                                    <optgroup label="{{ day }}">
+                                                        {% for slot in time_slots_by_day[day] %}
+                                                        <option value="{{ slot.id }}">{{ day }}: {{ slot.start_time }} -
+                                                            {{ slot.end_time }}</option>
+                                                        {% endfor %}
+                                                    </optgroup>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="subject" class="form-label">Subject/Course</label>
+                                                <input type="text" class="form-control" id="subject" name="subject"
+                                                    required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="room" class="form-label">Room</label>
+                                                <input type="text" class="form-control" id="room" name="room_name"
+                                                    placeholder="Enter room name (e.g., A101, Lab 1)" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="class_name" class="form-label">Class Name</label>
+                                                <input type="text" class="form-control" id="class_name"
+                                                    name="class_name" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="group_no" class="form-label">Group No</label>
+                                                <select class="form-select" id="group_no" name="group_id" required>
+                                                    <option value="">Select a group</option>
+                                                    {% for group in groups %}
+                                                    <option value="{{ group.id }}">{{ group.group_id }} - {{
+                                                        group.project_title }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">Add Schedule</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">Faculty Schedule Overview</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Faculty</th>
+                                                        {% for day in days %}
+                                                        <th>{{ day }}</th>
+                                                        {% endfor %}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for teacher in faculty %}
+                                                    <tr>
+                                                        <td>{{ teacher.first_name }} {{ teacher.last_name }}</td>
+                                                        {% for day in days %}
+                                                        <td>
+                                                            <div class="d-flex flex-column gap-1">
+                                                                {% for slot in time_slots_by_day[day] %}
+                                                                {% set key = teacher.id|string + '_' + slot.id|string %}
+                                                                {% if key in teacher_schedule_map %}
+                                                                <div class="p-1 bg-light border rounded small">
+                                                                    <strong>{{ slot.start_time }} - {{ slot.end_time
+                                                                        }}</strong><br>
+                                                                    {{ teacher_schedule_map[key].subject }}
+                                                                    <form
+                                                                        action="{{ url_for('admin_delete_teacher_schedule', schedule_id=teacher_schedule_map[key].id) }}"
+                                                                        method="POST" class="d-inline">
+                                                                        <button type="submit"
+                                                                            class="btn btn-danger btn-sm float-end"
+                                                                            onclick="return confirm('Are you sure you want to delete this schedule?')"><i
+                                                                                class="bi bi-trash"></i></button>
+                                                                    </form>
+                                                                </div>
+                                                                {% endif %}
+                                                                {% endfor %}
+                                                            </div>
+                                                        </td>
+                                                        {% endfor %}
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Room Schedule Tab -->
+                    <div class="tab-pane fade" id="room-schedule" role="tabpanel" aria-labelledby="room-schedule-tab">
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header bg-success text-white">
+                                        <h5 class="mb-0">Room Schedule Overview</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Room</th>
+                                                        {% for day in days %}
+                                                        <th>{{ day }}</th>
+                                                        {% endfor %}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for room in rooms %}
+                                                    <tr>
+                                                        <td>{{ room.name }}</td>
+                                                        {% for day in days %}
+                                                        <td>
+                                                            <div class="d-flex flex-column gap-1">
+                                                                {% for slot in time_slots_by_day[day] %}
+                                                                {% set key = room.id|string + '_' + slot.id|string %}
+                                                                {% if key in room_schedule_map %}
+                                                                <div class="p-1 bg-light border rounded small">
+                                                                    <strong>{{ slot.start_time }} - {{ slot.end_time
+                                                                        }}</strong><br>
+                                                                    {{ room_schedule_map[key].class_name }}
+                                                                    <form
+                                                                        action="{{ url_for('admin_delete_room_schedule', schedule_id=room_schedule_map[key].id) }}"
+                                                                        method="POST" class="d-inline">
+                                                                        <button type="submit"
+                                                                            class="btn btn-danger btn-sm float-end"
+                                                                            onclick="return confirm('Are you sure you want to delete this schedule?')"><i
+                                                                                class="bi bi-trash"></i></button>
+                                                                    </form>
+                                                                </div>
+                                                                {% endif %}
+                                                                {% endfor %}
+                                                            </div>
+                                                        </td>
+                                                        {% endfor %}
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // No need for extra JS since the room scheduling form was removed
+        });
+    </script>
+</body>
+
+</html>

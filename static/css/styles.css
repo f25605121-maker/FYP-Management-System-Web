@@ -1,0 +1,86 @@
+/* Custom styles for FYP Management System */
+
+/* Feature icons styling */
+.feature-icon {
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom button hover effects */
+.btn {
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Card hover effects */
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Navbar styling */
+.navbar {
+    backdrop-filter: blur(10px);
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
+/* Hero section styling */
+.display-4 {
+    line-height: 1.2;
+}
+
+/* Responsive image container */
+.img-fluid {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Footer styling */
+footer {
+    background-color: #f8f9fa;
+}
+
+/* Custom spacing utilities */
+.py-5 {
+    padding-top: 3rem !important;
+    padding-bottom: 3rem !important;
+}
+
+@media (min-width: 768px) {
+    .py-md-5 {
+        padding-top: 5rem !important;
+        padding-bottom: 5rem !important;
+    }
+}
+
+@media (min-width: 992px) {
+    .py-lg-5 {
+        padding-top: 7rem !important;
+        padding-bottom: 7rem !important;
+    }
+}
+
+@media (min-width: 1200px) {
+    .py-xl-5 {
+        padding-top: 9rem !important;
+        padding-bottom: 9rem !important;
+    }
+} 

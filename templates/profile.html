@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">My Profile</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>First Name:</strong></label>
+                        <p>{{ user.first_name }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Last Name:</strong></label>
+                        <p>{{ user.last_name }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Email:</strong></label>
+                        <p>{{ user.email }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Role:</strong></label>
+                        <p><span class="badge bg-info">{{ user.role|upper }}</span></p>
+                    </div>
+                    <hr>
+                    {% if user.role == 'admin' %}
+                        <a href="{{ url_for('dashboard_admin') }}" class="btn btn-secondary">Back to Dashboard</a>
+                    {% elif user.role in ('faculty', 'teacher') %}
+                        <a href="{{ url_for('dashboard_faculty') }}" class="btn btn-secondary">Back to Dashboard</a>
+                    {% elif user.role == 'supervisor' %}
+                        <a href="{{ url_for('dashboard_supervisor') }}" class="btn btn-secondary">Back to Dashboard</a>
+                    {% elif user.role == 'student' %}
+                        <a href="{{ url_for('dashboard_student') }}" class="btn btn-secondary">Back to Dashboard</a>
+                    {% else %}
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

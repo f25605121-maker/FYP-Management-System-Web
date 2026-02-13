@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Proposal - FYP Management System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2 mb-0"><i class="bi bi-check-square me-2"></i>Review Project Proposal</h1>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('project.supervisor_proposals') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Proposals
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Proposal Details Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Proposal Details</h5>
+                    <span class="badge bg-warning">{{ proposal.status }}</span>
+                </div>
+                <div class="card-body">
+                    <h3 class="mb-3">{{ proposal.title }}</h3>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Student:</div>
+                        <div class="col-md-9">{{ proposal.student.first_name }} {{ proposal.student.last_name }}</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Email:</div>
+                        <div class="col-md-9">{{ proposal.student.email }}</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Major/Field:</div>
+                        <div class="col-md-9">
+                            <span class="badge 
+                                {% if proposal.major == 'AI/ML' %}bg-info
+                                {% elif proposal.major == 'Cyber Security' %}bg-danger
+                                {% elif proposal.major == 'Blockchain' %}bg-warning
+                                {% elif proposal.major == 'Web Development' %}bg-success
+                                {% elif proposal.major == 'Mobile App Development' %}bg-primary
+                                {% else %}bg-secondary{% endif %}">
+                                {{ proposal.major }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Submitted:</div>
+                        <div class="col-md-9">{{ proposal.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-12 fw-bold mb-2">Project Description:</div>
+                        <div class="col-12">
+                            <div class="p-3 bg-light rounded">
+                                {{ proposal.description|nl2br }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Review Form Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Review Decision</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('project.review_proposal', proposal_id=proposal.id) }}">
+                        <div class="mb-3">
+                            <label for="feedback" class="form-label">Feedback <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="feedback" name="feedback" rows="6" required placeholder="Provide your feedback about this project proposal..."></textarea>
+                            <div class="form-text">This feedback will be shared with the student.</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mb-3">
+                            <button type="submit" name="action" value="approve" class="btn btn-success">
+                                <i class="bi bi-check-circle me-1"></i>Approve Proposal
+                            </button>
+                            <button type="submit" name="action" value="reject" class="btn btn-danger">
+                                <i class="bi bi-x-circle me-1"></i>Reject Proposal
+                            </button>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <small>
+                                <i class="bi bi-info-circle me-1"></i> Approving this proposal will forward it to the admin for evaluator assignment. Rejecting it will notify the student to revise or submit a new proposal.
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Supervisor Guidelines Card -->
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Review Guidelines</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="small mb-0">
+                        <li class="mb-2">Ensure the project is technically feasible within the available time frame.</li>
+                        <li class="mb-2">Check if the scope is appropriate for a final year project.</li>
+                        <li class="mb-2">Verify that you have the expertise to supervise this topic.</li>
+                        <li class="mb-2">Consider if the student has the necessary skills or can acquire them.</li>
+                        <li>Provide constructive feedback regardless of your decision.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Pending Proposals - FYP Management System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2 mb-0"><i class="bi bi-clipboard-check me-2"></i>Pending Project Proposals</h1>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('dashboard_admin') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    {% if proposals %}
+        <div class="card shadow mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Proposals Awaiting Evaluator Assignment</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Title</th>
+                            <th>Student</th>
+                            <th>Supervisor</th>
+                            <th>Major</th>
+                            <th>Approved Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for proposal in proposals %}
+                        <tr>
+                            <td>{{ proposal.title }}</td>
+                            <td>{{ proposal.student.first_name }} {{ proposal.student.last_name }}</td>
+                            <td>{{ proposal.supervisor.first_name }} {{ proposal.supervisor.last_name }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if proposal.major == 'AI/ML' %}bg-info
+                                    {% elif proposal.major == 'Cyber Security' %}bg-danger
+                                    {% elif proposal.major == 'Blockchain' %}bg-warning
+                                    {% elif proposal.major == 'Web Development' %}bg-success
+                                    {% elif proposal.major == 'Mobile App Development' %}bg-primary
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ proposal.major }}
+                                </span>
+                            </td>
+                            <td>{{ proposal.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#proposalModal{{ proposal.id }}">
+                                        <i class="bi bi-eye"></i> View
+                                    </button>
+                                    <a href="{{ url_for('project.assign_evaluator', proposal_id=proposal.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-person-plus"></i> Assign
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Modals for each proposal -->
+        {% for proposal in proposals %}
+        <div class="modal fade" id="proposalModal{{ proposal.id }}" tabindex="-1" aria-labelledby="proposalModalLabel{{ proposal.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="proposalModalLabel{{ proposal.id }}">{{ proposal.title }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col-md-4 fw-bold">Status:</div>
+                            <div class="col-md-8">
+                                <span class="badge bg-success">Approved by Supervisor</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4 fw-bold">Student:</div>
+                            <div class="col-md-8">{{ proposal.student.first_name }} {{ proposal.student.last_name }} ({{ proposal.student.email }})</div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4 fw-bold">Supervisor:</div>
+                            <div class="col-md-8">{{ proposal.supervisor.first_name }} {{ proposal.supervisor.last_name }} ({{ proposal.supervisor.email }})</div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4 fw-bold">Major/Field:</div>
+                            <div class="col-md-8">{{ proposal.major }}</div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4 fw-bold">Submitted:</div>
+                            <div class="col-md-8">{{ proposal.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12 fw-bold">Description:</div>
+                            <div class="col-md-12">
+                                <div class="p-3 bg-light rounded">
+                                    {{ proposal.description|nl2br }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if proposal.feedback %}
+                        <div class="row mb-3">
+                            <div class="col-md-12 fw-bold">Supervisor Feedback:</div>
+                            <div class="col-md-12">
+                                <div class="p-3 bg-light rounded">
+                                    {{ proposal.feedback|nl2br }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <a href="{{ url_for('project.assign_evaluator', proposal_id=proposal.id) }}" class="btn btn-primary">
+                            <i class="bi bi-person-plus"></i> Assign Evaluators
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card shadow">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-clipboard-check fs-1 text-muted mb-3"></i>
+                <h3>No Pending Proposals</h3>
+                <p class="text-muted">There are no project proposals waiting for evaluator assignment at the moment.</p>
+                <p>When supervisors approve proposals, they will appear here for you to assign evaluators.</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

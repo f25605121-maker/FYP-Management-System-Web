@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+
+{% block title %}Assigned Project Groups - FYP Management System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2 mb-0"><i class="bi bi-people-fill me-2"></i>My Assigned Project Groups</h1>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('dashboard_faculty') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Groups list card -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Assigned Groups</h5>
+                    <div>
+                        <a href="{{ url_for('teacher_viva_history') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-clock-history me-1"></i>View Evaluation History
+                        </a>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Group ID</th>
+                                <th>Project Title</th>
+                                <th>Supervisor</th>
+                                <th>Status</th>
+                                <th>Progress</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if groups %}
+                                {% for group in groups %}
+                                    <tr>
+                                        <td>{{ group.group_id }}</td>
+                                        <td>{{ group.project_title }}</td>
+                                        <td>
+                                            {% if group.supervisor %}
+                                                {{ group.supervisor.first_name }} {{ group.supervisor.last_name }}
+                                            {% else %}
+                                                <span class="text-muted">Not assigned</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% set status_entry = get_status_entry(group.id, current_user.id) %}
+                                            {% if status_entry %}
+                                                {% if status_entry.status == 'Accepted' %}
+                                                    <span class="badge bg-success">Accepted</span>
+                                                {% elif status_entry.status == 'Conditionally Accepted' %}
+                                                    <span class="badge bg-info">Conditionally Accepted</span>
+                                                {% elif status_entry.status == 'Deferred' %}
+                                                    <span class="badge bg-danger">Deferred</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">Pending</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge bg-warning">Pending</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if group.details %}
+                                                <div class="progress" style="height: 10px;">
+                                                    <div class="progress-bar 
+                                                        {% if group.details.progress < 30 %}bg-danger
+                                                        {% elif group.details.progress < 70 %}bg-warning
+                                                        {% else %}bg-success{% endif %}" 
+                                                        role="progressbar" 
+                                                        style="width: {{ group.details.progress }}%" 
+                                                        aria-valuenow="{{ group.details.progress }}" 
+                                                        aria-valuemin="0" 
+                                                        aria-valuemax="100"
+                                                        title="{{ group.details.progress }}% Complete">
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">No data</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('project.update_project_status', group_id=group.id) }}" class="btn btn-primary">
+                                                    <i class="bi bi-clipboard-check me-1"></i>Evaluate
+                                                </a>
+                                                <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#detailsModal{{ group.id }}">
+                                                    <i class="bi bi-info-circle me-1"></i>Details
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <i class="bi bi-people fs-1 text-muted mb-3 d-block"></i>
+                                        <p class="mb-0">No groups assigned to you yet.</p>
+                                        <p class="text-muted">When you are assigned as an evaluator, groups will appear here.</p>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    {% if groups %}
+        <div class="row">
+            <div class="col-md-3 mb-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h6 class="text-muted">Total Assigned</h6>
+                        <h2 class="mb-0">{{ groups|length }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h6 class="text-muted">Pending Evaluation</h6>
+                        <h2 class="mb-0">{{ pending_count }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h6 class="text-muted">Accepted</h6>
+                        <h2 class="mb-0">{{ accepted_count }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h6 class="text-muted">Deferred</h6>
+                        <h2 class="mb-0">{{ deferred_count }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Upcoming Vivas Section -->
+    {% if upcoming_vivas %}
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Upcoming Viva Examinations</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Group</th>
+                                        <th>Project</th>
+                                        <th>Location</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for viva in upcoming_vivas %}
+                                        <tr>
+                                            <td>{{ viva.scheduled_date.strftime('%Y-%m-%d') }}</td>
+                                            <td>{{ viva.scheduled_time }}</td>
+                                            <td>{{ viva.group.group_id }}</td>
+                                            <td>{{ viva.group.project_title }}</td>
+                                            <td>{{ viva.location }}</td>
+                                            <td><span class="badge bg-primary">{{ viva.status }}</span></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Project Details Modals -->
+    {% if groups %}
+        {% for group in groups %}
+            <div class="modal fade" id="detailsModal{{ group.id }}" tabindex="-1" aria-labelledby="detailsModalLabel{{ group.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="detailsModalLabel{{ group.id }}">Project Details</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <h4 class="mb-3">{{ group.project_title }}</h4>
+                            <p class="badge bg-secondary mb-3">Group ID: {{ group.group_id }}</p>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-4 fw-bold">Supervisor:</div>
+                                <div class="col-md-8">
+                                    {% if group.supervisor %}
+                                        {{ group.supervisor.first_name }} {{ group.supervisor.last_name }}
+                                    {% else %}
+                                        <span class="text-muted">Not assigned</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            {% if group.details %}
+                                <div class="row mb-3">
+                                    <div class="col-md-4 fw-bold">Project Major:</div>
+                                    <div class="col-md-8">
+                                        <span class="badge 
+                                            {% if group.details.major == 'AI/ML' %}bg-info
+                                            {% elif group.details.major == 'Cyber Security' %}bg-danger
+                                            {% elif group.details.major == 'Blockchain' %}bg-warning
+                                            {% elif group.details.major == 'Web Development' %}bg-success
+                                            {% elif group.details.major == 'Mobile App Development' %}bg-primary
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ group.details.major }}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-4 fw-bold">Project Progress:</div>
+                                    <div class="col-md-8">
+                                        <div class="progress">
+                                            <div class="progress-bar 
+                                                {% if group.details.progress < 30 %}bg-danger
+                                                {% elif group.details.progress < 70 %}bg-warning
+                                                {% else %}bg-success{% endif %}" 
+                                                role="progressbar" 
+                                                style="width: {{ group.details.progress }}%" 
+                                                aria-valuenow="{{ group.details.progress }}" 
+                                                aria-valuemin="0" 
+                                                aria-valuemax="100">
+                                                {{ group.details.progress }}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {% if group.details.description %}
+                                    <div class="row mb-4">
+                                        <div class="col-12 fw-bold mb-2">Project Description:</div>
+                                        <div class="col-12">
+                                            <div class="p-3 bg-light rounded">
+                                                {{ group.details.description|nl2br }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                            
+                            <!-- Group Members Section -->
+                            <div class="row mb-3">
+                                <div class="col-12 fw-bold mb-2">Group Members:</div>
+                                <div class="col-12">
+                                    <ul class="list-group">
+                                        {% for member in group.members %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>{{ member.user.first_name }} {{ member.user.last_name }}</strong>
+                                                    <br>
+                                                    <small class="text-muted">{{ member.user.email }}</small>
+                                                </div>
+                                                <span class="badge bg-primary">{{ member.user.role }}</span>
+                                            </li>
+                                        {% else %}
+                                            <li class="list-group-item text-center text-muted">No members found</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- Previous Feedback Section (if applicable) -->
+                            {% set status_entry = get_status_entry(group.id, current_user.id) %}
+                            {% if status_entry and (status_entry.feedback or status_entry.student_feedback) %}
+                                <div class="row mb-3">
+                                    <div class="col-12 fw-bold mb-2">Your Previous Feedback:</div>
+                                    <div class="col-12">
+                                        <div class="p-3 bg-light rounded mb-3">
+                                            <h6>Detailed Feedback (For Supervisors):</h6>
+                                            <p class="mb-0">{{ status_entry.feedback|nl2br }}</p>
+                                        </div>
+                                        <div class="p-3 bg-light rounded">
+                                            <h6>Student Feedback:</h6>
+                                            <p class="mb-0">{{ status_entry.student_feedback|nl2br }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <a href="{{ url_for('project.update_project_status', group_id=group.id) }}" class="btn btn-primary">
+                                <i class="bi bi-clipboard-check me-1"></i>Evaluate Project
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %} 
