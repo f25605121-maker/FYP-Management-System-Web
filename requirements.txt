@@ -8,3 +8,5 @@ Flask-Mail
 Authlib
 requests
 cryptography
+gunicorn
+python-dotenv

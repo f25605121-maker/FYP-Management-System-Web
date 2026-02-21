@@ -38,7 +38,10 @@ app.config['WTF_CSRF_TIME_LIMIT'] = 86400  # 24 hours
 csrf = CSRFProtect(app)
 
 # File upload configuration
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+if os.environ.get('RENDER'):
+    UPLOAD_FOLDER = os.path.join(RENDER_DATA_DIR, 'uploads')
+else:
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'zip', 'rar', 'png', 'jpg', 'jpeg'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload size
@@ -50,24 +53,24 @@ def allowed_file(filename):
 # For MySQL: app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://username:password@localhost/dbname'
 # For PostgreSQL: app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://username:password@localhost/dbname'
 # Database configuration
-if os.environ.get('VERCEL'):
+RENDER_DATA_DIR = os.environ.get('RENDER_DATA_DIR', '/opt/render/project/data')
+if os.environ.get('RENDER'):
+    # Render persistent disk – data survives re-deploys
+    db_path = os.path.join(RENDER_DATA_DIR, 'fyp.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+elif os.environ.get('VERCEL'):
     # Vercel file system is read-only, except for /tmp
     # NOTE: Data in /tmp is ephemeral and will be lost!
-    # You should use a remote database (Postgres/MySQL/MongoDB) for production.
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/fyp.db'
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///fyp.db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Database connection pool and performance settings
+# Database connection settings
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'connect_args': {'check_same_thread': False},
     'pool_pre_ping': True,      # Verify connections are alive before using them
-    'pool_recycle': 3600,       # Recycle connections every hour to prevent timeout
-    'pool_size': 10,            # Maintain a pool of 10 connections
-    'max_overflow': 20,         # Allow up to 20 overflow connections
-    'echo_pool': False,         # Set to True to debug connection pool
 }
 
 # Security configuration for session cookies
@@ -4589,6 +4592,20 @@ def recreate_tables():
     db.drop_all()
     db.create_all()
     print("All tables recreated.")
+
+# Render deployment initialization
+if os.environ.get('RENDER'):
+    with app.app_context():
+        try:
+            db.create_all()
+            if not User.query.filter_by(role='admin').first():
+                admin = User(email='admin@example.com', first_name='Admin', last_name='User', role='admin')
+                admin.set_password('admin123')
+                db.session.add(admin)
+                db.session.commit()
+                print("Render: Admin user created.")
+        except Exception as e:
+            print(f"Render Init Error: {e}")
 
 # Vercel deployment initialization
 if os.environ.get('VERCEL'):

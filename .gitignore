@@ -31,6 +31,11 @@ __pycache__/
 *.pyc
 instance/
 .venv/
+*.egg-info/
 
 # Uploaded files
 uploads/
+
+# Environment
+.env
+.env.*
