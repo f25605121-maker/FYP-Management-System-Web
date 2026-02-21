@@ -37,6 +37,9 @@ else:
 app.config['WTF_CSRF_TIME_LIMIT'] = 86400  # 24 hours
 csrf = CSRFProtect(app)
 
+# Render persistent disk path (must be defined before upload/DB config)
+RENDER_DATA_DIR = os.environ.get('RENDER_DATA_DIR', '/opt/render/project/data')
+
 # File upload configuration
 if os.environ.get('RENDER'):
     UPLOAD_FOLDER = os.path.join(RENDER_DATA_DIR, 'uploads')
@@ -53,7 +56,6 @@ def allowed_file(filename):
 # For MySQL: app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://username:password@localhost/dbname'
 # For PostgreSQL: app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://username:password@localhost/dbname'
 # Database configuration
-RENDER_DATA_DIR = os.environ.get('RENDER_DATA_DIR', '/opt/render/project/data')
 if os.environ.get('RENDER'):
     # Render persistent disk – data survives re-deploys
     db_path = os.path.join(RENDER_DATA_DIR, 'fyp.db')
