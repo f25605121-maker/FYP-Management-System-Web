@@ -522,8 +522,9 @@ class AssignedWork(db.Model):
     due_date = db.Column(db.Date, nullable=True)
     priority = db.Column(db.String(20), default='Medium')  # Low, Medium, High, Urgent
     work_type = db.Column(db.String(50), default='General')  # Task, Report, Presentation, Review, Code, Milestone, General
-    status = db.Column(db.String(20), default='Pending')  # Pending, In Progress, Submitted, Completed, Overdue
+    status = db.Column(db.String(20), default='Pending')  # Pending, In Progress, Submitted, Completed, Overdue, Needs Revision
     student_response = db.Column(db.Text, nullable=True)  # student notes when marking done
+    supervisor_comment = db.Column(db.Text, nullable=True)  # supervisor feedback/comment
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
@@ -1878,7 +1879,7 @@ def edit_assigned_work(work_id):
             work.title = new_title
         if new_description is not None:
             work.description = new_description
-        if new_status and new_status in ('Pending', 'In Progress', 'Submitted', 'Completed', 'Overdue'):
+        if new_status and new_status in ('Pending', 'In Progress', 'Submitted', 'Completed', 'Overdue', 'Needs Revision'):
             work.status = new_status
         if new_priority and new_priority in ('Low', 'Medium', 'High', 'Urgent'):
             work.priority = new_priority
@@ -1953,6 +1954,50 @@ def student_update_work(work_id):
     except Exception as e:
         db.session.rollback()
         flash(f"Error updating work: {str(e)}", 'danger')
+
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/supervisor/review_work/<int:work_id>', methods=['POST'])
+@login_required
+def supervisor_review_work(work_id):
+    if current_user.role != 'supervisor':
+        flash("Access denied.", 'danger')
+        return redirect(url_for('dashboard'))
+
+    work = AssignedWork.query.get_or_404(work_id)
+    group = StudentGroup.query.get(work.group_id)
+    if not group or group.supervisor_id != current_user.id:
+        flash("Access denied.", 'danger')
+        return redirect(url_for('dashboard'))
+
+    action = request.form.get('review_action', '').strip()
+    comment = request.form.get('supervisor_comment', '').strip()
+
+    try:
+        if action == 'approve':
+            work.status = 'Completed'
+            flash_msg = f"Work '{work.title}' approved and marked as completed."
+        elif action == 'needs_revision':
+            work.status = 'Needs Revision'
+            flash_msg = f"Work '{work.title}' sent back for revision."
+        elif action == 'reject':
+            work.status = 'Pending'
+            flash_msg = f"Work '{work.title}' rejected and reset to Pending."
+        else:
+            flash("Invalid review action.", 'danger')
+            return redirect(url_for('dashboard'))
+
+        if comment:
+            work.supervisor_comment = comment
+
+        db.session.commit()
+        logger.info(f"Supervisor {current_user.email} reviewed work '{work.title}': {action}")
+        flash(flash_msg, 'success')
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error reviewing work: {str(e)}")
+        flash(f"Error: {str(e)}", 'danger')
 
     return redirect(url_for('dashboard'))
 

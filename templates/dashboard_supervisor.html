@@ -1106,7 +1106,10 @@
                                                 <br><small class="text-muted">{{ work.description[:60] }}{{ '...' if work.description|length > 60 else '' }}</small>
                                                 {% endif %}
                                                 {% if work.student_response %}
-                                                <br><small class="text-primary"><i class="bi bi-chat-dots me-1"></i>{{ work.student_response[:60] }}{{ '...' if work.student_response|length > 60 else '' }}</small>
+                                                <br><small class="text-primary"><i class="bi bi-chat-dots me-1"></i><strong>Student:</strong> {{ work.student_response[:80] }}{{ '...' if work.student_response|length > 80 else '' }}</small>
+                                                {% endif %}
+                                                {% if work.supervisor_comment %}
+                                                <br><small class="text-success"><i class="bi bi-chat-left-text me-1"></i><strong>Your Comment:</strong> {{ work.supervisor_comment[:80] }}{{ '...' if work.supervisor_comment|length > 80 else '' }}</small>
                                                 {% endif %}
                                             </td>
                                             <td>{{ work_group.group_id if work_group else 'N/A' }}</td>
@@ -1144,14 +1147,15 @@
                                                     title="Edit">
                                                     <i class="bi bi-pencil"></i>
                                                 </button>
-                                                {% if work.status == 'Submitted' %}
-                                                <form method="POST" action="{{ url_for('edit_assigned_work', work_id=work.id) }}" class="d-inline">
-                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                    <input type="hidden" name="edit_work_status" value="Completed">
-                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Mark Completed">
-                                                        <i class="bi bi-check2-all"></i>
-                                                    </button>
-                                                </form>
+                                                {% if work.status in ['Submitted', 'In Progress', 'Needs Revision'] %}
+                                                <button class="btn btn-sm btn-outline-success review-work-btn" data-bs-toggle="modal" data-bs-target="#reviewWorkModal"
+                                                    data-id="{{ work.id }}" data-title="{{ work.title }}"
+                                                    data-student-response="{{ work.student_response or '' }}"
+                                                    data-supervisor-comment="{{ work.supervisor_comment or '' }}"
+                                                    data-status="{{ work.status }}"
+                                                    title="Review & Comment">
+                                                    <i class="bi bi-chat-square-text"></i>
+                                                </button>
                                                 {% endif %}
                                                 <form method="POST" action="{{ url_for('delete_assigned_work', work_id=work.id) }}" class="d-inline" onsubmit="return confirm('Delete this task?')">
                                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -1202,6 +1206,7 @@
                                                 <option value="Pending">Pending</option>
                                                 <option value="In Progress">In Progress</option>
                                                 <option value="Submitted">Submitted</option>
+                                                <option value="Needs Revision">Needs Revision</option>
                                                 <option value="Completed">Completed</option>
                                                 <option value="Overdue">Overdue</option>
                                             </select>
@@ -1224,6 +1229,71 @@
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                                     <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review Work Modal -->
+                <div class="modal fade" id="reviewWorkModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <form method="POST" id="reviewWorkForm">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="modal-header bg-success text-white">
+                                    <h5 class="modal-title"><i class="bi bi-chat-square-text me-2"></i>Review Submitted Work</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <h6 class="mb-3"><i class="bi bi-file-earmark-text me-2"></i><span id="reviewWorkTitle"></span></h6>
+                                    
+                                    <!-- Student Response -->
+                                    <div id="reviewStudentResponseSection" class="mb-3" style="display: none;">
+                                        <label class="form-label fw-semibold"><i class="bi bi-chat-dots text-primary me-1"></i>Student's Response</label>
+                                        <div class="p-3 bg-light rounded border" id="reviewStudentResponse"></div>
+                                    </div>
+
+                                    <!-- Current Status -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Current Status</label>
+                                        <span class="badge bg-info ms-2" id="reviewCurrentStatus"></span>
+                                    </div>
+
+                                    <!-- Supervisor Comment -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold"><i class="bi bi-pencil-square me-1"></i>Your Comment / Feedback</label>
+                                        <textarea class="form-control" name="supervisor_comment" id="reviewSupervisorComment" rows="4" placeholder="Add your feedback, suggestions, or remarks about this work..."></textarea>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="mb-2">
+                                        <label class="form-label fw-semibold">Decision</label>
+                                        <div class="d-flex gap-2 flex-wrap">
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="review_action" id="reviewApprove" value="approve">
+                                                <label class="form-check-label text-success fw-semibold" for="reviewApprove">
+                                                    <i class="bi bi-check-circle me-1"></i>Approve (Mark Completed)
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="review_action" id="reviewNeedsRevision" value="needs_revision">
+                                                <label class="form-check-label text-warning fw-semibold" for="reviewNeedsRevision">
+                                                    <i class="bi bi-arrow-repeat me-1"></i>Needs Revision
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="review_action" id="reviewReject" value="reject">
+                                                <label class="form-check-label text-danger fw-semibold" for="reviewReject">
+                                                    <i class="bi bi-x-circle me-1"></i>Reject (Reset to Pending)
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-success" id="reviewSubmitBtn" disabled><i class="bi bi-send me-2"></i>Submit Review</button>
                                 </div>
                             </form>
                         </div>
@@ -1919,6 +1989,44 @@
                     document.getElementById('editWorkPriority').value = this.getAttribute('data-priority');
                     document.getElementById('editWorkDueDate').value = this.getAttribute('data-due-date');
                     document.getElementById('editWorkForm').action = '/supervisor/edit_work/' + id;
+                });
+            });
+
+            // Review Work Modal population
+            document.querySelectorAll('.review-work-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const title = this.getAttribute('data-title');
+                    const studentResponse = this.getAttribute('data-student-response');
+                    const supervisorComment = this.getAttribute('data-supervisor-comment');
+                    const status = this.getAttribute('data-status');
+
+                    document.getElementById('reviewWorkTitle').textContent = title;
+                    document.getElementById('reviewCurrentStatus').textContent = status;
+                    document.getElementById('reviewWorkForm').action = '/supervisor/review_work/' + id;
+
+                    // Show student response if present
+                    const responseSection = document.getElementById('reviewStudentResponseSection');
+                    if (studentResponse) {
+                        responseSection.style.display = 'block';
+                        document.getElementById('reviewStudentResponse').textContent = studentResponse;
+                    } else {
+                        responseSection.style.display = 'none';
+                    }
+
+                    // Pre-fill existing supervisor comment
+                    document.getElementById('reviewSupervisorComment').value = supervisorComment || '';
+
+                    // Reset radio buttons
+                    document.querySelectorAll('input[name="review_action"]').forEach(r => r.checked = false);
+                    document.getElementById('reviewSubmitBtn').disabled = true;
+                });
+            });
+
+            // Enable submit button when a review action is selected
+            document.querySelectorAll('input[name="review_action"]').forEach(function(radio) {
+                radio.addEventListener('change', function() {
+                    document.getElementById('reviewSubmitBtn').disabled = false;
                 });
             });
         });

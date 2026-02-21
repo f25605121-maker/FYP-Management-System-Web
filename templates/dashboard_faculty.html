@@ -845,6 +845,7 @@
                                                     {% if work.status == 'Completed' %}bg-success
                                                     {% elif work.status == 'In Progress' %}bg-primary
                                                     {% elif work.status == 'Submitted' %}bg-info
+                                                    {% elif work.status == 'Needs Revision' %}bg-warning text-dark
                                                     {% elif work.status == 'Overdue' %}bg-danger
                                                     {% else %}bg-secondary{% endif %}">
                                                     {{ work.status }}
@@ -1071,6 +1072,7 @@
                                                 <span class="badge 
                                                     {% if work.status == 'In Progress' %}bg-primary
                                                     {% elif work.status == 'Submitted' %}bg-info
+                                                    {% elif work.status == 'Needs Revision' %}bg-warning text-dark
                                                     {% elif work.status == 'Overdue' %}bg-danger
                                                     {% else %}bg-secondary{% endif %}">
                                                     {{ work.status }}
