@@ -19,10 +19,18 @@ from sqlalchemy import inspect
 from sqlalchemy import or_
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Base directory of the project (parent of backend/)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 
-app = Flask(__name__)
+# Load environment variables from .env file (project root)
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, 'frontend', 'templates'),
+    static_folder=os.path.join(BASE_DIR, 'frontend', 'static')
+)
 # Read from environment in production; allow a dev-only fallback for local runs.
 _secret_key = os.environ.get('SECRET_KEY')
 _is_dev = app.debug or os.environ.get('FLASK_ENV') == 'development'
@@ -46,7 +54,7 @@ if os.environ.get('RENDER'):
 elif os.environ.get('VERCEL'):
     UPLOAD_FOLDER = '/tmp/uploads'
 else:
-    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+    UPLOAD_FOLDER = os.path.join(BACKEND_DIR, 'uploads')
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'zip', 'rar', 'png', 'jpg', 'jpeg'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload size
@@ -130,7 +138,7 @@ else:
     oauth = None
 
 # Create a directory for storing email files
-EMAIL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'emails')
+EMAIL_DIR = os.path.join(BACKEND_DIR, 'emails')
 os.makedirs(EMAIL_DIR, exist_ok=True)
 
 # Helper function to send emails reliably
