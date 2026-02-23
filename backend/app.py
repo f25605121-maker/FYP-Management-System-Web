@@ -75,9 +75,19 @@ if _database_url:
     # Fix Heroku/Supabase URI scheme: postgres:// → postgresql://
     if _database_url.startswith('postgres://'):
         _database_url = _database_url.replace('postgres://', 'postgresql://', 1)
-    # Use pg8000 pure-Python driver (works on Vercel Lambda without libpq)
-    if _database_url.startswith('postgresql://') and '+' not in _database_url.split('://')[0]:
-        _database_url = _database_url.replace('postgresql://', 'postgresql+pg8000://', 1)
+    # Use pg8000 pure-Python driver on Vercel (no libpq available)
+    # On Render/other servers, try psycopg2 first (faster), fall back to pg8000
+    if os.environ.get('VERCEL'):
+        if _database_url.startswith('postgresql://') and '+' not in _database_url.split('://')[0]:
+            _database_url = _database_url.replace('postgresql://', 'postgresql+pg8000://', 1)
+    else:
+        # Try psycopg2 first; if not available, use pg8000
+        try:
+            import psycopg2
+            # psycopg2 is available, keep default driver
+        except ImportError:
+            if _database_url.startswith('postgresql://') and '+' not in _database_url.split('://')[0]:
+                _database_url = _database_url.replace('postgresql://', 'postgresql+pg8000://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = _database_url
 elif os.environ.get('RENDER'):
     db_path = os.path.join(RENDER_DATA_DIR, 'fyp.db')
@@ -96,12 +106,17 @@ else:
     _engine_opts['pool_size'] = 5
     _engine_opts['max_overflow'] = 10
     _engine_opts['pool_recycle'] = 300
-    # pg8000 requires ssl_context for cloud-hosted PostgreSQL (Supabase)
-    import ssl as _ssl
-    _ssl_ctx = _ssl.create_default_context()
-    _ssl_ctx.check_hostname = False
-    _ssl_ctx.verify_mode = _ssl.CERT_NONE
-    _engine_opts['connect_args'] = {'ssl_context': _ssl_ctx}
+    # SSL for cloud-hosted PostgreSQL (Supabase)
+    _db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    if 'pg8000' in _db_uri:
+        import ssl as _ssl
+        _ssl_ctx = _ssl.create_default_context()
+        _ssl_ctx.check_hostname = False
+        _ssl_ctx.verify_mode = _ssl.CERT_NONE
+        _engine_opts['connect_args'] = {'ssl_context': _ssl_ctx}
+    else:
+        # psycopg2 uses sslmode parameter
+        _engine_opts['connect_args'] = {'sslmode': 'require'}
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = _engine_opts
 
 # Security configuration for session cookies
@@ -4651,6 +4666,7 @@ if os.environ.get('RENDER'):
     with app.app_context():
         try:
             db.create_all()
+            print("Render: Database tables created/verified.")
             if not User.query.filter_by(role='admin').first():
                 admin = User(email='admin@example.com', first_name='Admin', last_name='User', role='admin')
                 admin.set_password('admin123')
