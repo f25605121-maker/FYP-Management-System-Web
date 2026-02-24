@@ -127,6 +127,11 @@
                                 <i class="bi bi-file-earmark-text me-3"></i>Reports
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="#resources" class="nav-link section-link" data-section="resources">
+                                <i class="bi bi-journal-text me-3"></i>Resources
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -1704,6 +1709,104 @@
                     </div>
                 </div>
 
+                <!-- Resources Section -->
+                <div id="resources" class="content-section">
+                    <h2 class="mb-4">Resources</h2>
+
+                    <!-- Upload Form -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-cloud-upload me-2"></i>Upload New Resource</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('upload_resource') }}" method="POST" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="resourceTitle" class="form-label">Title <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="resourceTitle" name="title" required placeholder="e.g. FYP Guidelines">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="resourceCategory" class="form-label">Category</label>
+                                        <select class="form-select" id="resourceCategory" name="category">
+                                            <option value="Guidelines">Guidelines</option>
+                                            <option value="Template">Template</option>
+                                            <option value="Calendar">Calendar</option>
+                                            <option value="Reference">Reference</option>
+                                            <option value="General" selected>General</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="resourceFile" class="form-label">File <span class="text-danger">*</span></label>
+                                        <input type="file" class="form-control" id="resourceFile" name="resource_file" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="resourceDesc" class="form-label">Description (optional)</label>
+                                    <input type="text" class="form-control" id="resourceDesc" name="description" placeholder="Brief description of this resource">
+                                </div>
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i> Upload Resource</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Resources List -->
+                    <div class="card">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-journal-text me-2"></i>All Resources</h5>
+                            <span class="badge bg-info fs-6">{{ resources|length }} total</span>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if resources|length > 0 %}
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>File</th>
+                                            <th>Title</th>
+                                            <th>Category</th>
+                                            <th>Size</th>
+                                            <th>Uploaded By</th>
+                                            <th>Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for r in resources %}
+                                        <tr>
+                                            <td><i class="bi {{ r.icon_class }}" style="font-size: 1.5rem;"></i></td>
+                                            <td>
+                                                <strong>{{ r.title }}</strong>
+                                                {% if r.description %}<br><small class="text-muted">{{ r.description }}</small>{% endif %}
+                                            </td>
+                                            <td><span class="badge bg-secondary">{{ r.category }}</span></td>
+                                            <td>{{ r.file_size_display }}</td>
+                                            <td>{{ r.uploader.first_name }} {{ r.uploader.last_name }}</td>
+                                            <td>{{ r.created_at.strftime('%b %d, %Y') }}</td>
+                                            <td>
+                                                <a href="{{ url_for('download_resource', resource_id=r.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Download"><i class="bi bi-download"></i></a>
+                                                {% if current_user.id == r.uploaded_by %}
+                                                <form action="{{ url_for('delete_resource', resource_id=r.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this resource?');">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                                </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-journal-x" style="font-size: 3rem;"></i>
+                                <p class="mt-2 mb-0">No resources uploaded yet. Use the form above to add one.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
                     <!-- Reusable Group Details Modal -->
                     <div class="modal" id="groupDetailsModal" tabindex="-1" aria-labelledby="groupDetailsModalLabel"
                         aria-hidden="true">
@@ -2031,6 +2134,8 @@
             });
         });
     </script>
+    <!-- Auto-refresh -->
+    <script src="{{ url_for('static', filename='js/auto-refresh.js') }}"></script>
 </body>
 
 </html>

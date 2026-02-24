@@ -93,7 +93,10 @@ elif os.environ.get('RENDER'):
     db_path = os.path.join(RENDER_DATA_DIR, 'fyp.db')
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///fyp.db'
+    # Use absolute path for SQLite so it's consistent regardless of working directory
+    _sqlite_path = os.path.join(BACKEND_DIR, 'instance', 'fyp.db')
+    os.makedirs(os.path.dirname(_sqlite_path), exist_ok=True)
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{_sqlite_path}'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -600,6 +603,55 @@ class AssignedWork(db.Model):
         if self.due_date and self.status not in ('Completed', 'Submitted'):
             return datetime.date.today() > self.due_date
         return False
+
+
+class Resource(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    category = db.Column(db.String(50), default='General')  # Guidelines, Template, Calendar, General
+    filename = db.Column(db.String(300), nullable=False)  # stored filename on disk
+    original_filename = db.Column(db.String(300), nullable=False)  # original upload name
+    file_type = db.Column(db.String(20), nullable=True)  # pdf, doc, docx, xlsx, pptx, etc.
+    file_size = db.Column(db.Integer, nullable=True)  # bytes
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    uploader = db.relationship('User', backref='uploaded_resources')
+
+    def __repr__(self):
+        return f"Resource: {self.title} ({self.original_filename})"
+
+    @property
+    def file_size_display(self):
+        if not self.file_size:
+            return 'N/A'
+        if self.file_size < 1024:
+            return f"{self.file_size} B"
+        elif self.file_size < 1024 * 1024:
+            return f"{self.file_size / 1024:.1f} KB"
+        else:
+            return f"{self.file_size / (1024 * 1024):.1f} MB"
+
+    @property
+    def icon_class(self):
+        icons = {
+            'pdf': 'bi-file-earmark-pdf text-danger',
+            'doc': 'bi-file-earmark-word text-primary',
+            'docx': 'bi-file-earmark-word text-primary',
+            'xls': 'bi-file-earmark-excel text-success',
+            'xlsx': 'bi-file-earmark-excel text-success',
+            'ppt': 'bi-file-earmark-ppt text-warning',
+            'pptx': 'bi-file-earmark-ppt text-warning',
+            'zip': 'bi-file-earmark-zip text-secondary',
+            'rar': 'bi-file-earmark-zip text-secondary',
+            'png': 'bi-file-earmark-image text-info',
+            'jpg': 'bi-file-earmark-image text-info',
+            'jpeg': 'bi-file-earmark-image text-info',
+            'txt': 'bi-file-earmark-text text-muted',
+        }
+        return icons.get(self.file_type, 'bi-file-earmark text-secondary')
+
 
 # ============================================
 # DATA INTEGRITY VALIDATORS
@@ -1415,7 +1467,9 @@ def dashboard_admin():
                           failed_logins_30_days=failed_logins_30_days,
                           recent_logins=recent_logins,
                           recent_activities=recent_activities,
-                          system_status=system_status)
+                          system_status=system_status,
+                          teacher_usernames=TeacherUsername.query.order_by(TeacherUsername.created_at.desc()).all(),
+                          resources=Resource.query.order_by(Resource.created_at.desc()).all())
 
 @app.route('/dashboard_supervisor')
 @login_required
@@ -1486,7 +1540,8 @@ def dashboard_supervisor():
                            all_project_details=all_project_details,
                            all_submissions=all_submissions,
                            all_assigned_works=all_assigned_works,
-                           group_members=group_members)
+                           group_members=group_members,
+                           resources=Resource.query.order_by(Resource.created_at.desc()).all())
 
 @app.route('/dashboard/student')
 @role_required('student')
@@ -1599,7 +1654,8 @@ def dashboard_student():
         project_progress=project_progress,
         submissions=submissions,
         assigned_works=assigned_works,
-        current_user=current_user
+        current_user=current_user,
+        resources=Resource.query.order_by(Resource.created_at.desc()).all()
     )
 
 @app.route('/admin/db')
@@ -2574,13 +2630,24 @@ def admin_delete_project(project_id):
     project_title = group.project_title
     
     try:
-        # Delete associated group members
+        # Delete ALL associated records (order matters for foreign key constraints)
+        Viva.query.filter_by(group_id=group.id).delete()
+        AssignedWork.query.filter_by(group_id=group.id).delete()
+        Submission.query.filter_by(group_id=group.id).delete()
+        ProjectMilestone.query.filter_by(group_id=group.id).delete()
+        
+        # ProjectDetails is one-to-one
+        details = ProjectDetails.query.filter_by(group_id=group.id).first()
+        if details:
+            db.session.delete(details)
+        
+        # Scheduling records
+        TeacherSchedule.query.filter_by(group_id=group.id).delete()
+        RoomSchedule.query.filter_by(group_id=group.id).delete()
+        
+        # Original deletions
         GroupMember.query.filter_by(group_id=group.id).delete()
-        
-        # Delete associated remarks
         Remark.query.filter_by(group_id=group.id).delete()
-        
-        # Delete associated project statuses
         ProjectStatus.query.filter_by(group_id=group.id).delete()
         
         # Delete the group project itself
@@ -2731,6 +2798,288 @@ def admin_save_settings():
     # For now, we'll just show a success message
     flash('System settings updated successfully', 'success')
     return redirect(url_for('dashboard'))
+
+# ============================================
+# BACKUP & RESTORE
+# ============================================
+
+@app.route('/admin/backup', methods=['GET'])
+@login_required
+def admin_backup():
+    """Export all database tables as a downloadable JSON file."""
+    if current_user.role != 'admin':
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    import io
+    from datetime import date, time as dt_time
+
+    def serialize(obj):
+        """Convert a SQLAlchemy model instance to a dict."""
+        d = {}
+        for col in obj.__table__.columns:
+            val = getattr(obj, col.name)
+            if isinstance(val, (datetime.datetime, date)):
+                val = val.isoformat()
+            elif isinstance(val, dt_time):
+                val = val.isoformat()
+            d[col.name] = val
+        return d
+
+    data = {
+        '_meta': {
+            'exported_at': datetime.datetime.utcnow().isoformat(),
+            'exported_by': current_user.email,
+            'version': '1.0'
+        },
+        'users': [serialize(u) for u in User.query.all()],
+        'student_groups': [serialize(g) for g in StudentGroup.query.all()],
+        'group_members': [serialize(m) for m in GroupMember.query.all()],
+        'project_statuses': [serialize(ps) for ps in ProjectStatus.query.all()],
+        'project_proposals': [serialize(p) for p in ProjectProposal.query.all()],
+        'project_milestones': [serialize(m) for m in ProjectMilestone.query.all()],
+        'project_details': [serialize(d) for d in ProjectDetails.query.all()],
+        'remarks': [serialize(r) for r in Remark.query.all()],
+        'vivas': [serialize(v) for v in Viva.query.all()],
+        'submissions': [serialize(s) for s in Submission.query.all()],
+        'assigned_works': [serialize(w) for w in AssignedWork.query.all()],
+        'notifications': [serialize(n) for n in Notification.query.all()],
+        'teacher_usernames': [serialize(t) for t in TeacherUsername.query.all()],
+        'resources': [serialize(r) for r in Resource.query.all()],
+    }
+
+    # Optional tables that may not exist
+    try:
+        data['time_slots'] = [serialize(t) for t in TimeSlot.query.all()]
+        data['rooms'] = [serialize(r) for r in Room.query.all()]
+        data['teacher_schedules'] = [serialize(s) for s in TeacherSchedule.query.all()]
+        data['room_schedules'] = [serialize(s) for s in RoomSchedule.query.all()]
+    except Exception:
+        pass
+
+    try:
+        data['login_attempts'] = [serialize(la) for la in LoginAttempt.query.all()]
+    except Exception:
+        pass
+
+    buf = io.BytesIO()
+    buf.write(json.dumps(data, indent=2, default=str).encode('utf-8'))
+    buf.seek(0)
+
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    response = app.response_class(
+        buf.getvalue(),
+        mimetype='application/json',
+        headers={
+            'Content-Disposition': f'attachment; filename=fyp_backup_{timestamp}.json'
+        }
+    )
+    return response
+
+
+@app.route('/admin/restore', methods=['POST'])
+@login_required
+def admin_restore():
+    """Restore database from a JSON backup file."""
+    if current_user.role != 'admin':
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    file = request.files.get('backup_file')
+    if not file or not file.filename:
+        flash('No file selected.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    if not file.filename.endswith('.json'):
+        flash('Invalid file format. Please upload a .json backup file.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        data = json.loads(file.read().decode('utf-8'))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        flash('Invalid or corrupted backup file.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    if '_meta' not in data or 'users' not in data:
+        flash('This does not appear to be a valid backup file.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Table restore order matters (parent tables first)
+    model_map = {
+        'users': User,
+        'student_groups': StudentGroup,
+        'group_members': GroupMember,
+        'project_statuses': ProjectStatus,
+        'project_proposals': ProjectProposal,
+        'project_milestones': ProjectMilestone,
+        'project_details': ProjectDetails,
+        'remarks': Remark,
+        'vivas': Viva,
+        'submissions': Submission,
+        'assigned_works': AssignedWork,
+        'notifications': Notification,
+        'teacher_usernames': TeacherUsername,
+        'resources': Resource,
+        'time_slots': TimeSlot,
+        'rooms': Room,
+        'teacher_schedules': TeacherSchedule,
+        'room_schedules': RoomSchedule,
+    }
+
+    try:
+        # Optional: also handle LoginAttempt
+        try:
+            model_map['login_attempts'] = LoginAttempt
+        except NameError:
+            pass
+
+        restored_counts = {}
+
+        # Clear existing data in reverse order (child tables first)
+        for table_name in reversed(list(model_map.keys())):
+            if table_name in data:
+                model = model_map[table_name]
+                try:
+                    model.query.delete()
+                except Exception:
+                    pass
+
+        db.session.commit()
+
+        # Restore data
+        for table_name, model in model_map.items():
+            rows = data.get(table_name, [])
+            if not rows:
+                continue
+
+            count = 0
+            columns = {col.name for col in model.__table__.columns}
+            for row in rows:
+                # Only include keys that are actual columns
+                filtered = {k: v for k, v in row.items() if k in columns}
+                try:
+                    obj = model(**filtered)
+                    db.session.add(obj)
+                    count += 1
+                except Exception as e:
+                    print(f"Restore skip {table_name} row: {e}")
+                    continue
+
+            restored_counts[table_name] = count
+
+        db.session.commit()
+
+        summary = ', '.join(f"{v} {k.replace('_', ' ')}" for k, v in restored_counts.items() if v > 0)
+        flash(f'Backup restored successfully! Restored: {summary}', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error restoring backup: {str(e)}', 'danger')
+
+    return redirect(url_for('dashboard'))
+
+
+# ============================================
+# RESOURCES MANAGEMENT
+# ============================================
+
+ALLOWED_RESOURCE_EXTENSIONS = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar', 'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_resource_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_RESOURCE_EXTENSIONS
+
+
+@app.route('/resources/upload', methods=['POST'])
+@login_required
+def upload_resource():
+    """Upload a new resource (admin or supervisor only)."""
+    if current_user.role not in ('admin', 'supervisor'):
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    title = request.form.get('title', '').strip()
+    description = request.form.get('description', '').strip()
+    category = request.form.get('category', 'General').strip()
+    file = request.files.get('resource_file')
+
+    if not title:
+        flash('Resource title is required.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    if not file or not file.filename:
+        flash('Please select a file to upload.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    if not allowed_resource_file(file.filename):
+        flash(f'Invalid file type. Allowed: {", ".join(ALLOWED_RESOURCE_EXTENSIONS)}', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Create resources subdirectory
+    resources_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'resources')
+    os.makedirs(resources_dir, exist_ok=True)
+
+    # Generate unique filename
+    from werkzeug.utils import secure_filename as sec_fn
+    original_filename = file.filename
+    ext = original_filename.rsplit('.', 1)[1].lower()
+    stored_filename = f"resource_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_{sec_fn(original_filename)}"
+
+    filepath = os.path.join(resources_dir, stored_filename)
+    file.save(filepath)
+
+    file_size = os.path.getsize(filepath)
+
+    resource = Resource(
+        title=title,
+        description=description,
+        category=category,
+        filename=stored_filename,
+        original_filename=original_filename,
+        file_type=ext,
+        file_size=file_size,
+        uploaded_by=current_user.id
+    )
+    db.session.add(resource)
+    db.session.commit()
+
+    flash(f'Resource "{title}" uploaded successfully!', 'success')
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/resources/download/<int:resource_id>')
+@login_required
+def download_resource(resource_id):
+    """Download a resource file."""
+    resource = Resource.query.get_or_404(resource_id)
+    resources_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'resources')
+    return send_from_directory(resources_dir, resource.filename, as_attachment=True, download_name=resource.original_filename)
+
+
+@app.route('/resources/delete/<int:resource_id>', methods=['POST'])
+@login_required
+def delete_resource(resource_id):
+    """Delete a resource (admin or the uploader)."""
+    resource = Resource.query.get_or_404(resource_id)
+
+    if current_user.role != 'admin' and current_user.id != resource.uploaded_by:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Delete the file from disk
+    resources_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'resources')
+    filepath = os.path.join(resources_dir, resource.filename)
+    try:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    except Exception:
+        pass
+
+    db.session.delete(resource)
+    db.session.commit()
+
+    flash(f'Resource "{resource.title}" deleted.', 'success')
+    return redirect(url_for('dashboard'))
+
 
 # Admin Teacher Username Management
 @app.route('/admin/teacher_usernames')

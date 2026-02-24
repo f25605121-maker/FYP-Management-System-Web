@@ -332,6 +332,12 @@
                                 <i class="bi bi-gear me-3"></i>Settings
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link section-link" data-section="resources">
+                                <i class="bi bi-journal-text me-3"></i>Resources
+                                <span class="badge bg-info ms-auto">{{ resources|length }}</span>
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -1008,13 +1014,18 @@
                                 <div class="card-body">
                                     <div class="mb-4">
                                         <h6>Create Backup</h6>
-                                        <p>Create a backup of the entire system including database and files.</p>
-                                        <button class="btn btn-primary"><i class="bi bi-download"></i> Create Backup</button>
+                                        <p>Download a full backup of the database as a JSON file.</p>
+                                        <a href="{{ url_for('admin_backup') }}" class="btn btn-primary"><i class="bi bi-download"></i> Create Backup</a>
                                     </div>
+                                    <hr>
                                     <div>
                                         <h6>Restore System</h6>
-                                        <div class="mb-3"><label for="backupFile" class="form-label">Backup File</label><input type="file" class="form-control" id="backupFile"></div>
-                                        <button class="btn btn-warning"><i class="bi bi-upload"></i> Restore from Backup</button>
+                                        <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> <strong>Warning:</strong> Restoring will replace ALL existing data.</p>
+                                        <form action="{{ url_for('admin_restore') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirm('Are you sure? This will DELETE all current data and replace it with the backup. This cannot be undone.');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <div class="mb-3"><label for="backupFile" class="form-label">Backup File (.json)</label><input type="file" class="form-control" id="backupFile" name="backup_file" accept=".json" required></div>
+                                            <button type="submit" class="btn btn-warning"><i class="bi bi-upload"></i> Restore from Backup</button>
+                                        </form>
                                     </div>
                                 </div>
                             </div>
@@ -1026,7 +1037,7 @@
                                     <p class="mb-3">Create usernames for teachers. Teachers must use these pre-approved usernames to register.</p>
                                     <div class="row mb-4">
                                         <div class="col-md-8">
-                                            <form action="{{ url_for('admin_add_teacher_username') }}" method="POST" class="d-flex">
+                                            <form action="{{ url_for('admin_add_teacher_username') }}" method="POST" class="d-flex" onsubmit="sessionStorage.setItem('scrollToSettings','true');">
                                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                 <div class="input-group">
                                                     <input type="text" class="form-control" name="username" placeholder="Enter new username" required>
@@ -1041,12 +1052,143 @@
                                                 <tr><th>Username</th><th>Status</th><th>Created</th><th>Used By</th><th>Actions</th></tr>
                                             </thead>
                                             <tbody id="teacher-usernames-tbody">
-                                                <tr><td colspan="5" class="text-center">Loading teacher usernames...</td></tr>
+                                                {% if teacher_usernames %}
+                                                {% for tu in teacher_usernames %}
+                                                <tr>
+                                                    <td><strong>{{ tu.username }}</strong></td>
+                                                    <td>
+                                                        {% if tu.is_used %}
+                                                        <span class="badge bg-success">Used</span>
+                                                        {% else %}
+                                                        <span class="badge bg-warning text-dark">Available</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ tu.created_at.strftime('%d %b %Y, %I:%M %p') if tu.created_at else 'N/A' }}</td>
+                                                    <td>
+                                                        {% if tu.user %}
+                                                        {{ tu.user.first_name }} {{ tu.user.last_name }}
+                                                        {% else %}
+                                                        <span class="text-muted">—</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% if not tu.is_used %}
+                                                        <form action="{{ url_for('admin_delete_teacher_username', username_id=tu.id) }}" method="POST" style="display:inline;" onsubmit="sessionStorage.setItem('scrollToSettings','true');">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete username {{ tu.username }}?')">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                        {% else %}
+                                                        <span class="text-muted">In use</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                                {% else %}
+                                                <tr><td colspan="5" class="text-center text-muted">No teacher usernames created yet. Add one above.</td></tr>
+                                                {% endif %}
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resources Section -->
+                <div id="resources" class="content-section">
+                    <h2 class="mb-4">Resources</h2>
+
+                    <!-- Upload Form -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-cloud-upload me-2"></i>Upload New Resource</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('upload_resource') }}" method="POST" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="resourceTitle" class="form-label">Title <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="resourceTitle" name="title" required placeholder="e.g. FYP Guidelines">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="resourceCategory" class="form-label">Category</label>
+                                        <select class="form-select" id="resourceCategory" name="category">
+                                            <option value="Guidelines">Guidelines</option>
+                                            <option value="Template">Template</option>
+                                            <option value="Calendar">Calendar</option>
+                                            <option value="Reference">Reference</option>
+                                            <option value="General" selected>General</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="resourceFile" class="form-label">File <span class="text-danger">*</span></label>
+                                        <input type="file" class="form-control" id="resourceFile" name="resource_file" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="resourceDesc" class="form-label">Description (optional)</label>
+                                    <input type="text" class="form-control" id="resourceDesc" name="description" placeholder="Brief description of this resource">
+                                </div>
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i> Upload Resource</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Resources List -->
+                    <div class="card">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-journal-text me-2"></i>All Resources</h5>
+                            <span class="badge bg-info fs-6">{{ resources|length }} total</span>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if resources|length > 0 %}
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>File</th>
+                                            <th>Title</th>
+                                            <th>Category</th>
+                                            <th>Size</th>
+                                            <th>Uploaded By</th>
+                                            <th>Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for r in resources %}
+                                        <tr>
+                                            <td><i class="bi {{ r.icon_class }}" style="font-size: 1.5rem;"></i></td>
+                                            <td>
+                                                <strong>{{ r.title }}</strong>
+                                                {% if r.description %}<br><small class="text-muted">{{ r.description }}</small>{% endif %}
+                                            </td>
+                                            <td><span class="badge bg-secondary">{{ r.category }}</span></td>
+                                            <td>{{ r.file_size_display }}</td>
+                                            <td>{{ r.uploader.first_name }} {{ r.uploader.last_name }}</td>
+                                            <td>{{ r.created_at.strftime('%b %d, %Y') }}</td>
+                                            <td>
+                                                <a href="{{ url_for('download_resource', resource_id=r.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Download"><i class="bi bi-download"></i></a>
+                                                <form action="{{ url_for('delete_resource', resource_id=r.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this resource?');">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-journal-x" style="font-size: 3rem;"></i>
+                                <p class="mt-2 mb-0">No resources uploaded yet. Use the form above to add one.</p>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -1390,6 +1532,17 @@
                 const usersLink = document.querySelector('[data-section="users"]');
                 if (usersLink) usersLink.click();
             }
+
+            // Check if we should navigate to settings section (after teacher username add/delete)
+            if (sessionStorage.getItem('scrollToSettings') === 'true') {
+                sessionStorage.removeItem('scrollToSettings');
+                switchSection('settings');
+                // Also activate the Teacher Usernames tab
+                setTimeout(function() {
+                    var tab = document.getElementById('teacher-usernames-tab');
+                    if (tab) tab.click();
+                }, 100);
+            }
             
             // Quick action hover effects
             document.querySelectorAll('.quick-action-card').forEach(card => {
@@ -1515,5 +1668,7 @@
             });
         });
     </script>
+    <!-- Auto-refresh -->
+    <script src="{{ url_for('static', filename='js/auto-refresh.js') }}"></script>
 </body>
 </html>
