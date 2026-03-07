@@ -22,6 +22,12 @@ import requests
 from sqlalchemy import inspect
 from sqlalchemy import or_
 from dotenv import load_dotenv
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+except ImportError:
+    Limiter = None
+import logging
 
 # Base directory of the project (parent of backend/)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -40,11 +46,12 @@ _secret_key = os.environ.get('SECRET_KEY')
 _is_dev = app.debug or os.environ.get('FLASK_ENV') == 'development'
 if _secret_key:
     app.config['SECRET_KEY'] = _secret_key
-else:
-    # Fallback for dev or if SECRET_KEY is missing — always allow app to start
+elif _is_dev:
     app.config['SECRET_KEY'] = 'dev-secret-key-change-this-in-prod-982374923'
-    if not _is_dev:
-        print('[WARNING] SECRET_KEY not set! Using fallback. Set SECRET_KEY env var in production.')
+else:
+    # Production without SECRET_KEY — generate a random one (sessions reset on restart)
+    app.config['SECRET_KEY'] = secrets.token_hex(32)
+    logging.warning('SECRET_KEY not set! Generated a random key. Set SECRET_KEY env var in production.')
 
 # Initialize CSRF protection
 app.config['WTF_CSRF_TIME_LIMIT'] = 86400  # 24 hours
@@ -99,6 +106,20 @@ else:
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{_sqlite_path}'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Rate limiter — protects login, signup, and password reset from brute force
+if Limiter:
+    limiter = Limiter(get_remote_address, app=app, default_limits=[], storage_uri='memory://')
+else:
+    limiter = None
+
+def rate_limit(limit_string):
+    """Apply rate limiting if flask-limiter is available, otherwise no-op."""
+    if limiter:
+        return limiter.limit(limit_string)
+    def noop(f):
+        return f
+    return noop
 
 # Database connection settings
 _engine_opts = {'pool_pre_ping': True}
@@ -658,7 +679,6 @@ class Resource(db.Model):
 # ============================================
 
 from sqlalchemy import event
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -781,6 +801,18 @@ def handle_csrf_error(e):
     flash('Your session expired. Please try again.', 'warning')
     return redirect(request.referrer or url_for('dashboard'))
 
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('500.html'), 500
+
+@app.route('/health')
+def health_check():
+    return jsonify({'status': 'ok'}), 200
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -792,6 +824,7 @@ def index():
     return render_template('index.html')
 
 @app.route('/login', methods=['GET', 'POST'])
+@rate_limit('10 per minute')
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
@@ -867,6 +900,7 @@ def login_modern():
     return render_template('login_modern.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
+@rate_limit('5 per minute')
 def signup():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -2326,6 +2360,7 @@ def authorize():
         return redirect(url_for('login'))
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
+@rate_limit('3 per minute')
 def forgot_password():
     if request.method == 'POST':
         email = request.form.get('email')
@@ -5017,11 +5052,13 @@ if os.environ.get('RENDER'):
             db.create_all()
             print("Render: Database tables created/verified.")
             if not User.query.filter_by(role='admin').first():
-                admin = User(email='admin@example.com', first_name='Admin', last_name='User', role='admin')
-                admin.set_password('admin123')
+                _admin_email = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
+                _admin_pw = os.environ.get('ADMIN_PASSWORD', secrets.token_urlsafe(16))
+                admin = User(email=_admin_email, first_name='Admin', last_name='User', role='admin')
+                admin.set_password(_admin_pw)
                 db.session.add(admin)
                 db.session.commit()
-                print("Render: Admin user created.")
+                print(f"Render: Admin user created with email {_admin_email}")
         except Exception as e:
             print(f"Render Init Error: {e}")
 
@@ -5032,16 +5069,52 @@ try:
             try:
                 db.create_all()
                 # Seed default admin if missing
-                if not User.query.filter_by(email='admin@example.com').first():
-                    admin = User(email='admin@example.com', first_name='Admin', last_name='User', role='admin')
-                    admin.set_password('admin123')
+                _admin_email = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
+                if not User.query.filter_by(email=_admin_email).first():
+                    _admin_pw = os.environ.get('ADMIN_PASSWORD', secrets.token_urlsafe(16))
+                    admin = User(email=_admin_email, first_name='Admin', last_name='User', role='admin')
+                    admin.set_password(_admin_pw)
                     db.session.add(admin)
                     db.session.commit()
-                    print("Production: Admin user created.")
+                    print(f"Production: Admin user created with email {_admin_email}")
             except Exception as e:
                 print(f"Production Init Error: {e}")
 except Exception as e:
     print(f"[WARNING] Skipping production init: {e}")
+
+# Admin route for data integrity check
+@app.route('/admin/check-data-integrity')
+@login_required
+def check_data_integrity():
+    if current_user.role != 'admin':
+        flash('Access denied.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        issues = verify_data_integrity()
+        
+        if not issues:
+            return jsonify({
+                'status': 'healthy',
+                'message': 'All data integrity checks passed!',
+                'total_issues': 0,
+                'issues': []
+            })
+        else:
+            return jsonify({
+                'status': 'issues_found',
+                'message': f'Found {len(issues)} data integrity issues',
+                'total_issues': len(issues),
+                'issues': issues
+            })
+    except Exception as e:
+        logger.error(f"Error checking data integrity: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Error checking integrity: {str(e)}',
+            'total_issues': 0,
+            'issues': []
+        }), 500
 
 if __name__ == '__main__':
     with app.app_context():
@@ -5064,73 +5137,27 @@ if __name__ == '__main__':
                 recreate_tables()
             else:
                 # Only check if admin user exists if we didn't recreate tables
-                admin = User.query.filter_by(email='admin@example.com').first()
+                _admin_email = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
+                admin = User.query.filter_by(email=_admin_email).first()
                 if not admin:
                     try:
-                        # Create initial users
-                        admin = User(email='admin@example.com', first_name='Admin', last_name='User', role='admin')
-                        admin.set_password('admin123')
+                        _admin_pw = os.environ.get('ADMIN_PASSWORD', 'admin123')
+                        admin = User(email=_admin_email, first_name='Admin', last_name='User', role='admin')
+                        admin.set_password(_admin_pw)
                         db.session.add(admin)
-                        
-                        # Create a sample teacher
-                        teacher = User(email='teacher@example.com', first_name='John', last_name='Smith', role='teacher')
-                        teacher.set_password('teacher123')
-                        db.session.add(teacher)
-                        
-                        # Create a sample supervisor
-                        supervisor = User(email='supervisor@example.com', first_name='David', last_name='Johnson', role='supervisor')
-                        supervisor.set_password('supervisor123')
-                        db.session.add(supervisor)
-                        
-                        # Create a sample student
-                        student = User(email='student@example.com', first_name='Sarah', last_name='Johnson', role='student')
-                        student.set_password('student123')
-                        db.session.add(student)
-                        
                         db.session.commit()
-                        print("Sample users created.")
+                        print(f"Admin user created: {_admin_email}")
                     except Exception as e:
                         db.session.rollback()
-                        print(f"Error creating sample users: {str(e)}")
+                        print(f"Error creating admin user: {str(e)}")
             
         except Exception as e:
             # If there's an error (like missing columns), drop and recreate all tables
             print(f"Error initializing database: {str(e)}")
             recreate_tables()
-    
-    # Admin route for data integrity check
-    @app.route('/admin/check-data-integrity')
-    @login_required
-    def check_data_integrity():
-        if current_user.role != 'admin':
-            flash('Access denied.', 'danger')
-            return redirect(url_for('index'))
-        
-        try:
-            issues = verify_data_integrity()
-            
-            if not issues:
-                return jsonify({
-                    'status': 'healthy',
-                    'message': 'All data integrity checks passed!',
-                    'total_issues': 0,
-                    'issues': []
-                })
-            else:
-                return jsonify({
-                    'status': 'issues_found',
-                    'message': f'Found {len(issues)} data integrity issues',
-                    'total_issues': len(issues),
-                    'issues': issues
-                })
-        except Exception as e:
-            logger.error(f"Error checking data integrity: {str(e)}")
-            return jsonify({
-                'status': 'error',
-                'message': f'Error checking integrity: {str(e)}',
-                'total_issues': 0,
-                'issues': []
-            }), 500
+
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    app.run(host='0.0.0.0', debug=debug)
     
 # Register blueprints (must be after db/User definition to avoid circular imports)
 # On Vercel, this must run at module level, not just in __main__
@@ -5141,24 +5168,3 @@ try:
     pass
 except Exception as e:
     print(f"Error registering blueprint: {e}")
-
-if __name__ == '__main__':
-    with app.app_context():
-        try:
-            # Try to query the User model to check if all columns exist
-            User.query.first()
-            print("Database tables exist with current schema.")
-            # ... (rest of the startup checks can remain here or be simplified)
-            
-            # Check if the group_member table exists - if not, recreate all tables
-            inspector = inspect(db.engine)
-            if 'group_member' not in inspector.get_table_names():
-                print("Missing group_member table. Recreating all tables...")
-                recreate_tables()
-
-        except Exception as e:
-            # If there's an error (like missing columns), drop and recreate all tables
-            print(f"Error initializing database: {str(e)}")
-            recreate_tables()
-
-    app.run(host='0.0.0.0', debug=True)
