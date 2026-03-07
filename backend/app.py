@@ -807,6 +807,7 @@ def page_not_found(e):
 
 @app.errorhandler(500)
 def internal_server_error(e):
+    logging.error(f"500 error: {e}")
     return render_template('500.html'), 500
 
 @app.route('/health')
@@ -5067,7 +5068,10 @@ try:
     if os.environ.get('VERCEL') or (os.environ.get('DATABASE_URL') and not os.environ.get('RENDER')):
         with app.app_context():
             try:
+                logging.info(f"Production init: Connecting to database...")
+                logging.info(f"Database URI scheme: {app.config.get('SQLALCHEMY_DATABASE_URI', 'NOT SET')[:30]}...")
                 db.create_all()
+                logging.info("Production init: Database tables created/verified.")
                 # Seed default admin if missing
                 _admin_email = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
                 if not User.query.filter_by(email=_admin_email).first():
@@ -5076,11 +5080,17 @@ try:
                     admin.set_password(_admin_pw)
                     db.session.add(admin)
                     db.session.commit()
-                    print(f"Production: Admin user created with email {_admin_email}")
+                    logging.info(f"Production: Admin user created with email {_admin_email}")
+                else:
+                    logging.info(f"Production: Admin user already exists: {_admin_email}")
             except Exception as e:
-                print(f"Production Init Error: {e}")
+                logging.error(f"Production Init Error: {e}")
+                import traceback
+                traceback.print_exc()
 except Exception as e:
-    print(f"[WARNING] Skipping production init: {e}")
+    logging.error(f"[WARNING] Skipping production init: {e}")
+    import traceback
+    traceback.print_exc()
 
 # Admin route for data integrity check
 @app.route('/admin/check-data-integrity')
