@@ -831,25 +831,27 @@ def login():
         
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
-            # Check if the selected role matches the user's role in the database
-            # Treat 'teacher' and 'faculty' as interchangeable roles
-            user_role_normalized = 'faculty' if user.role == 'teacher' else user.role
-            selected_role_normalized = 'faculty' if selected_role == 'teacher' else selected_role
-            
-            if user_role_normalized != selected_role_normalized:
-                # Log failed attempt due to role mismatch
-                login_attempt = LoginAttempt(
-                    email=email,
-                    success=False,
-                    ip_address=client_ip,
-                    user_agent=user_agent,
-                    user_id=user.id
-                )
-                db.session.add(login_attempt)
-                db.session.commit()
+            # Admin can log in with any role selection (no admin option in dropdown)
+            if user.role != 'admin':
+                # Check if the selected role matches the user's role in the database
+                # Treat 'teacher' and 'faculty' as interchangeable roles
+                user_role_normalized = 'faculty' if user.role == 'teacher' else user.role
+                selected_role_normalized = 'faculty' if selected_role == 'teacher' else selected_role
                 
-                flash(f'Invalid role selected. You are registered as a {user.role}.', 'danger')
-                return render_template('login_simple.html')
+                if user_role_normalized != selected_role_normalized:
+                    # Log failed attempt due to role mismatch
+                    login_attempt = LoginAttempt(
+                        email=email,
+                        success=False,
+                        ip_address=client_ip,
+                        user_agent=user_agent,
+                        user_id=user.id
+                    )
+                    db.session.add(login_attempt)
+                    db.session.commit()
+                    
+                    flash(f'Invalid role selected. You are registered as a {user.role}.', 'danger')
+                    return render_template('login_simple.html')
             
             # Check email verification
             if not user.is_verified and user.role != 'admin':
