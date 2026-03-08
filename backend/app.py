@@ -138,8 +138,10 @@ else:
     if 'pg8000' in _db_uri:
         import ssl as _ssl
         _ssl_ctx = _ssl.create_default_context()
-        _ssl_ctx.check_hostname = False
-        _ssl_ctx.verify_mode = _ssl.CERT_NONE
+        # Only disable SSL verification if explicitly opted in (not recommended)
+        if os.environ.get('DB_SSL_INSECURE') == '1':
+            _ssl_ctx.check_hostname = False
+            _ssl_ctx.verify_mode = _ssl.CERT_NONE
         _engine_opts['connect_args'] = {'ssl_context': _ssl_ctx}
     else:
         # psycopg2 uses sslmode parameter
@@ -802,7 +804,13 @@ def verify_data_integrity():
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
     flash('Your session expired. Please try again.', 'warning')
-    return redirect(request.referrer or url_for('dashboard'))
+    # Validate referrer to prevent open redirect
+    referrer = request.referrer
+    if referrer:
+        from urllib.parse import urlparse
+        if urlparse(referrer).netloc != request.host:
+            referrer = None
+    return redirect(referrer or url_for('dashboard'))
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -877,6 +885,13 @@ def login():
             login_user(user, remember=remember)
             next_page = request.args.get('next')
             
+            # Validate next_page is a safe relative URL (prevent open redirect)
+            if next_page:
+                from urllib.parse import urlparse
+                parsed = urlparse(next_page)
+                if parsed.netloc or parsed.scheme:
+                    next_page = None  # Reject absolute URLs
+            
             # Redirect user to their role-based dashboard
             return redirect(next_page or url_for('dashboard'))
         else:
@@ -930,9 +945,15 @@ def signup():
             flash(f'Invalid role. Allowed roles: {", ".join(allowed_roles)}', 'danger')
             return render_template('signup.html')
         
-        # Validate password
-        if len(password) < 6:
-            flash('Password must be at least 6 characters long', 'danger')
+        # Validate password strength
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long', 'danger')
+            return render_template('signup.html')
+        if not any(c.isupper() for c in password):
+            flash('Password must contain at least one uppercase letter', 'danger')
+            return render_template('signup.html')
+        if not any(c.isdigit() for c in password):
+            flash('Password must contain at least one number', 'danger')
             return render_template('signup.html')
         
         if password != confirm_password:
@@ -3104,11 +3125,11 @@ def delete_resource(resource_id):
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
 
-    # Delete the file from disk
-    resources_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'resources')
-    filepath = os.path.join(resources_dir, resource.filename)
+    # Delete the file from disk (with path traversal protection)
+    resources_dir = os.path.abspath(os.path.join(app.config['UPLOAD_FOLDER'], 'resources'))
+    filepath = os.path.abspath(os.path.join(resources_dir, resource.filename))
     try:
-        if os.path.exists(filepath):
+        if filepath.startswith(resources_dir) and os.path.exists(filepath):
             os.remove(filepath)
     except Exception:
         pass
@@ -5109,7 +5130,10 @@ if __name__ == '__main__':
                 admin = User.query.filter_by(email=_admin_email).first()
                 if not admin:
                     try:
-                        _admin_pw = os.environ.get('ADMIN_PASSWORD', 'admin123')
+                        _admin_pw = os.environ.get('ADMIN_PASSWORD')
+                        if not _admin_pw:
+                            _admin_pw = secrets.token_urlsafe(16)
+                            print(f"[STARTUP] Generated admin password (set ADMIN_PASSWORD env var): {_admin_pw}")
                         admin = User(email=_admin_email, first_name='Admin', last_name='User', role='admin')
                         admin.set_password(_admin_pw)
                         db.session.add(admin)

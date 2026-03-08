@@ -39,8 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
         pwField.addEventListener('input', () => {
             const v = pwField.value;
             let score = 0;
-            if (v.length >= 6)  score++;
-            if (v.length >= 10) score++;
+            if (v.length >= 8)  score++;
+            if (v.length >= 12) score++;
             if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
             if (/\d/.test(v))   score++;
             if (/[^A-Za-z0-9]/.test(v)) score++;
@@ -92,6 +92,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 showError(el, 'Must be at least 8 characters');
                 return;
             }
+            if (el.name === 'password' && !/[A-Z]/.test(el.value)) {
+                showError(el, 'Must contain an uppercase letter');
+                return;
+            }
+            if (el.name === 'password' && !/\d/.test(el.value)) {
+                showError(el, 'Must contain a number');
+                return;
+            }
             /* confirm password match */
             if (el.name === 'confirmPassword') {
                 const pw = document.getElementById('password');
@@ -124,6 +132,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (el.name === 'password' && el.value.length < 8) {
                     showError(el, 'Must be at least 8 characters'); hasErr = true; return;
+                }
+                if (el.name === 'password' && !/[A-Z]/.test(el.value)) {
+                    showError(el, 'Must contain an uppercase letter'); hasErr = true; return;
+                }
+                if (el.name === 'password' && !/\d/.test(el.value)) {
+                    showError(el, 'Must contain a number'); hasErr = true; return;
                 }
                 if (el.name === 'confirmPassword') {
                     const pw = document.getElementById('password');

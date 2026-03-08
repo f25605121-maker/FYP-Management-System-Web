@@ -13,6 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Create non-root user for security
+RUN useradd -m -r appuser && chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE ${PORT:-8080}
 
 CMD gunicorn backend.app:app --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 120
