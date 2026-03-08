@@ -5032,13 +5032,17 @@ with app.app_context():
         _admin_pw = os.environ.get('ADMIN_PASSWORD')
         admin = User.query.filter_by(email=_admin_email).first()
         if not admin:
-            if not _admin_pw:
-                _admin_pw = secrets.token_urlsafe(16)
-            admin = User(email=_admin_email, first_name='Admin', last_name='User', role='admin')
-            admin.set_password(_admin_pw)
-            db.session.add(admin)
-            db.session.commit()
-            print(f"[STARTUP] Admin user created: {_admin_email}", flush=True)
+            try:
+                if not _admin_pw:
+                    _admin_pw = secrets.token_urlsafe(16)
+                admin = User(email=_admin_email, first_name='Admin', last_name='User', role='admin')
+                admin.set_password(_admin_pw)
+                db.session.add(admin)
+                db.session.commit()
+                print(f"[STARTUP] Admin user created: {_admin_email}", flush=True)
+            except Exception:
+                db.session.rollback()
+                print(f"[STARTUP] Admin already created by another worker.", flush=True)
         elif _admin_pw:
             # Update admin password to match env variable
             admin.set_password(_admin_pw)
