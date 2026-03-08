@@ -5104,6 +5104,12 @@ with app.app_context():
         _db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', 'NOT SET')
         print(f"[STARTUP] Database URI: {_db_uri[:40]}...", flush=True)
         print(f"[STARTUP] DATABASE_URL env: {'SET' if os.environ.get('DATABASE_URL') else 'NOT SET'}", flush=True)
+        print(f"[STARTUP] MAIL_USERNAME env: {'SET' if os.environ.get('MAIL_USERNAME') else 'NOT SET'}", flush=True)
+        print(f"[STARTUP] MAIL_PASSWORD env: {'SET' if os.environ.get('MAIL_PASSWORD') else 'NOT SET'}", flush=True)
+        
+        _is_sqlite = 'sqlite' in _db_uri.lower()
+        
+        # For SQLite, use checkfirst to avoid "table already exists" with multiple workers
         db.create_all()
         print("[STARTUP] Database tables created/verified.", flush=True)
         
@@ -5114,10 +5120,16 @@ with app.app_context():
             existing_columns = [col['name'] for col in inspector.get_columns('user')]
             with db.engine.begin() as conn:
                 if 'is_verified' not in existing_columns:
-                    conn.execute(text("ALTER TABLE \"user\" ADD COLUMN is_verified BOOLEAN DEFAULT true NOT NULL"))
+                    if _is_sqlite:
+                        conn.execute(text("ALTER TABLE user ADD COLUMN is_verified BOOLEAN DEFAULT 1"))
+                    else:
+                        conn.execute(text("ALTER TABLE \"user\" ADD COLUMN is_verified BOOLEAN DEFAULT true NOT NULL"))
                     print("[STARTUP] Added is_verified column (existing users set to verified).", flush=True)
                 if 'verification_token' not in existing_columns:
-                    conn.execute(text("ALTER TABLE \"user\" ADD COLUMN verification_token VARCHAR(100)"))
+                    if _is_sqlite:
+                        conn.execute(text("ALTER TABLE user ADD COLUMN verification_token VARCHAR(100)"))
+                    else:
+                        conn.execute(text("ALTER TABLE \"user\" ADD COLUMN verification_token VARCHAR(100)"))
                     print("[STARTUP] Added verification_token column.", flush=True)
         except Exception as me:
             print(f"[STARTUP] Column migration note: {me}", flush=True)
@@ -5201,30 +5213,15 @@ if __name__ == '__main__':
             if 'group_member' not in inspector.get_table_names():
                 print("Missing group_member table. Recreating all tables...")
                 recreate_tables()
-            else:
-                # Only check if admin user exists if we didn't recreate tables
-                _admin_email = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
-                admin = User.query.filter_by(email=_admin_email).first()
-                if not admin:
-                    try:
-                        _admin_pw = os.environ.get('ADMIN_PASSWORD')
-                        if not _admin_pw:
-                            _admin_pw = secrets.token_urlsafe(16)
-                            print(f"[STARTUP] Generated admin password (set ADMIN_PASSWORD env var): {_admin_pw}")
-                        admin = User(email=_admin_email, first_name='Admin', last_name='User', role='admin', is_verified=True)
-                        admin.set_password(_admin_pw)
-                        db.session.add(admin)
-                        db.session.commit()
-                        print(f"Admin user created: {_admin_email}")
-                    except Exception as e:
-                        db.session.rollback()
-                        print(f"Error creating admin user: {str(e)}")
             
         except Exception as e:
             # If there's an error (like missing columns), create any missing tables
             print(f"Error initializing database: {str(e)}")
-            db.create_all()
-            print("Tables created after error.")
+            try:
+                db.create_all()
+                print("Tables created after error.")
+            except Exception as e2:
+                print(f"Could not create tables: {e2}")
 
     debug = os.environ.get('FLASK_ENV') == 'development'
     app.run(host='0.0.0.0', debug=debug)
