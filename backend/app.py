@@ -5011,8 +5011,21 @@ with app.app_context():
         _db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', 'NOT SET')
         print(f"[STARTUP] Database URI: {_db_uri[:40]}...", flush=True)
         print(f"[STARTUP] DATABASE_URL env: {'SET' if os.environ.get('DATABASE_URL') else 'NOT SET'}", flush=True)
-        db.create_all()
-        print("[STARTUP] Database tables created/verified.", flush=True)
+        print(f"[STARTUP] MAIL_USERNAME env: {'SET' if os.environ.get('MAIL_USERNAME') else 'NOT SET'}", flush=True)
+        print(f"[STARTUP] MAIL_PASSWORD env: {'SET' if os.environ.get('MAIL_PASSWORD') else 'NOT SET'}", flush=True)
+        
+        # Log all env vars starting with MAIL_ or DATABASE (names only, not values)
+        _env_keys = sorted([k for k in os.environ.keys() if any(x in k.upper() for x in ['MAIL', 'DATABASE', 'DB'])])
+        print(f"[STARTUP] Related env var names: {_env_keys}", flush=True)
+        
+        try:
+            db.create_all()
+            print("[STARTUP] Database tables created/verified.", flush=True)
+        except Exception as ce:
+            if 'already exists' in str(ce):
+                print("[STARTUP] Tables already exist (concurrent worker), continuing.", flush=True)
+            else:
+                raise
         
         # Seed or update admin user
         _admin_email = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
