@@ -198,92 +198,65 @@ if OAuth:
 else:
     oauth = None
 
-# Create a directory for storing email files
-EMAIL_DIR = os.path.join(BACKEND_DIR, 'emails')
-os.makedirs(EMAIL_DIR, exist_ok=True)
+# Check if email is configured
+MAIL_CONFIGURED = bool(app.config['MAIL_USERNAME'] and app.config['MAIL_PASSWORD'])
+if MAIL_CONFIGURED:
+    print(f"[OK] Email configured with {app.config['MAIL_USERNAME']}")
+else:
+    print("[WARNING] Email not configured. Set MAIL_USERNAME and MAIL_PASSWORD for password reset emails.")
 
-# Helper function to send emails reliably
+# Helper function to send emails via Gmail SMTP
 def send_email(to_email, subject, body, from_email=None):
-    """
-    Sends an email using multiple methods, falling back as needed.
-    For development, it writes the email to a file.
-    """
+    """Send email via Gmail SMTP. Returns (success, message)."""
     if from_email is None:
         from_email = app.config['MAIL_DEFAULT_SENDER']
     
-    email_content = {
-        'to': to_email,
-        'from': from_email,
-        'subject': subject,
-        'body': body,
-        'timestamp': str(datetime.datetime.now())
-    }
+    if not MAIL_CONFIGURED:
+        return False, "Email service not configured"
     
-    # Always save to file (for logging purposes)
-    filename = f"email_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_{to_email.replace('@', '_').replace('.', '_')}.json"
-    file_path = os.path.join(EMAIL_DIR, filename)
-    
-    with open(file_path, 'w') as f:
-        json.dump(email_content, f, indent=4)
-    
-    print(f"Email saved to {file_path}")
-    
-    # Try to send using the Brevo/Sendinblue API (free tier)
     try:
-        # Use the Brevo/Sendinblue API (formerly Sendinblue)
-        api_url = "https://api.brevo.com/v3/smtp/email"
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
         
-        # Note: You would need to sign up for a free Brevo account
-        # and replace this API key with your own
-        headers = {
-            "accept": "application/json",
-            "content-type": "application/json",
-            "api-key": "YOUR_API_KEY_HERE"  # Replace with your actual API key
-        }
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = from_email
+        msg['To'] = to_email
         
-        payload = {
-            "sender": {"email": from_email, "name": "FYP Management System"},
-            "to": [{"email": to_email}],
-            "subject": subject,
-            "htmlContent": body.replace('\n', '<br>')
-        }
+        # Create HTML version
+        html_body = body.replace('\n', '<br>')
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+                <h1 style="color: white; margin: 0;">FYP Management System</h1>
+            </div>
+            <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #dee2e6;">
+                {html_body}
+            </div>
+            <p style="text-align: center; color: #6c757d; font-size: 12px; margin-top: 20px;">
+                This is an automated email. Please do not reply.
+            </p>
+        </div>
+        """
         
-        # Only attempt to send via API if the API key is properly set
-        if headers["api-key"] != "YOUR_API_KEY_HERE":
-            response = requests.post(api_url, json=payload, headers=headers)
-            if response.status_code == 201:
-                print(f"Email sent successfully via Brevo API to {to_email}")
-                return True, "Email sent via Brevo API"
-            else:
-                print(f"Brevo API error: {response.status_code} - {response.text}")
-                # Fall back to Flask-Mail
+        msg.attach(MIMEText(body, 'plain'))
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        server = smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'])
+        server.starttls()
+        server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+        server.sendmail(from_email, to_email, msg.as_string())
+        server.quit()
+        
+        print(f"[OK] Email sent to {to_email}")
+        return True, "Email sent successfully"
         
     except Exception as e:
-        print(f"Error with Brevo API: {str(e)}")
-    
-    # If we're in debug mode, don't attempt SMTP which will likely timeout
-    if app.debug:
-        return True, f"Email saved to file: {file_path}"
-    
-    # Try Flask-Mail as a last resort (production only)
-    try:
-        msg = Message(subject, recipients=[to_email], body=body, sender=from_email)
-        mail.send(msg)
-        return True, "Email sent via Flask-Mail"
-    except Exception as e:
-        error_msg = f"Flask-Mail error: {str(e)}"
-        print(error_msg)
+        error_msg = str(e)
+        print(f"[ERROR] Email failed: {error_msg}")
         return False, error_msg
 
-# Test mail connection on startup if in debug mode
-if app.debug and not os.environ.get('VERCEL'):
-    with app.app_context():
-        try:
-            mail.connect()
-            print("Mail server connection successful!")
-        except Exception as e:
-            print(f"Warning: Could not connect to mail server: {str(e)}")
-            print("Password reset emails will not be sent, but the app will still function.")
             
 # Setup Google OAuth (only if properly configured)
 if OAUTH_CONFIGURED and oauth:
@@ -2388,52 +2361,40 @@ def authorize():
 @rate_limit('3 per minute')
 def forgot_password():
     if request.method == 'POST':
-        email = request.form.get('email')
+        email = request.form.get('email', '').strip().lower()
         user = User.query.filter_by(email=email).first()
         
-        if user:
-            # Generate a token
-            token = user.generate_reset_token()
-            
-            # Create the reset link
-            reset_link = url_for('reset_password', token=token, email=email, _external=True)
-            
-            # Create the email message
-            subject = "Password Reset Request"
-            body = f"""
-To reset your password, visit the following link:
+        if not user:
+            flash('No account found with that email address.', 'danger')
+            return render_template('forgot_password.html')
+        
+        # Generate a reset token
+        token = user.generate_reset_token()
+        reset_link = url_for('reset_password', token=token, email=email, _external=True)
+        
+        # Try to send email
+        subject = "Password Reset - FYP Management System"
+        body = f"""Hello {user.first_name},
+
+You requested a password reset for your FYP Management System account.
+
+Click the link below to reset your password:
 {reset_link}
 
-If you did not make this request, simply ignore this email and no changes will be made.
+This link will expire in 1 hour.
+
+If you did not request this, please ignore this email.
 """
-            # Send the email using our reliable function
-            success, message = send_email(email, subject, body)
-            
-            if success:
-                # Show a detailed message regardless of whether we're in debug mode
-                # This makes it clearer for the user what they need to do
-                if "saved to file" in message:
-                    file_path = message.split(": ")[1]
-                    flash(f'Due to email restrictions, your reset link has been saved locally instead of being sent. Please check this file for your reset link: {file_path}', 'warning')
-                    flash(f'Reset link: <a href="{reset_link}">{reset_link}</a>', 'info')
-                    return render_template('forgot_password.html')
-                else:
-                    flash(f'A password reset link has been sent to your email {email}. Please check your inbox (and spam folder).', 'success')
-                    # Still provide the direct link in development mode
-                    if app.debug:
-                        flash(f'For testing purposes, you can also use this direct link: <a href="{reset_link}">{reset_link}</a>', 'info')
-                        return render_template('forgot_password.html')
-                    return redirect(url_for('login'))
-            else:
-                # Show error message if email sending failed
-                flash(f'Error sending email: {message}', 'danger')
-                # Always provide the reset link in development mode for testing
-                if app.debug:
-                    flash(f'Reset link: <a href="{reset_link}">{reset_link}</a>', 'info')
-                
-                return render_template('forgot_password.html')
+        success, message = send_email(email, subject, body)
+        
+        if success:
+            flash(f'A password reset link has been sent to {email}. Check your inbox and spam folder.', 'success')
         else:
-            flash('No account found with that email address.', 'danger')
+            # Email not configured or failed — show reset link directly (for demo/development)
+            flash('Email service is not available. Use the reset link below:', 'warning')
+            flash(f'<a href="{reset_link}" class="btn btn-sm btn-info mt-2">Click here to reset your password</a>', 'info')
+        
+        return render_template('forgot_password.html')
     
     return render_template('forgot_password.html')
 
@@ -2452,6 +2413,10 @@ def reset_password(token):
         
         if password != confirm_password:
             flash('Passwords do not match.', 'danger')
+            return render_template('reset_password.html', token=token, email=email)
+        
+        if len(password) < 8 or not any(c.isupper() for c in password) or not any(c.isdigit() for c in password):
+            flash('Password must be at least 8 characters with an uppercase letter and a number.', 'danger')
             return render_template('reset_password.html', token=token, email=email)
         
         user.set_password(password)
