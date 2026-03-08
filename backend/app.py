@@ -2285,8 +2285,10 @@ def login_google():
     session['google_login_role'] = selected_role
     
     try:
-        # Use localhost instead of 127.0.0.1 for Google OAuth compatibility
-        redirect_uri = url_for('authorize', _external=True).replace('127.0.0.1', 'localhost')
+        redirect_uri = url_for('authorize', _external=True)
+        # For local development, replace 127.0.0.1 with localhost
+        if '127.0.0.1' in redirect_uri:
+            redirect_uri = redirect_uri.replace('127.0.0.1', 'localhost')
         return google.authorize_redirect(redirect_uri)
     except Exception as e:
         flash(f'Google authentication error: {str(e)}. Please try again or use regular login.', 'danger')
