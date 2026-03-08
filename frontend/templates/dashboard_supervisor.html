@@ -697,7 +697,7 @@
                                             <small class="text-muted">Progress</small>
                                             <small class="fw-bold">{{ prog }}%</small>
                                         </div>
-                                        <div class="progress" style="height: 8px;">
+                                        <div class="progress progress-thin">
                                             <div class="progress-bar {% if prog >= 75 %}bg-success{% elif prog >= 40 %}bg-warning{% else %}bg-danger{% endif %}" 
                                                  style="width: {{ prog }}%"></div>
                                         </div>
@@ -707,8 +707,8 @@
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="group_id" value="{{ group.id }}">
                                         <input type="range" class="form-range flex-grow-1" name="progress" min="0" max="100" step="5" value="{{ prog }}" 
-                                               oninput="this.nextElementSibling.textContent=this.value+'%'" style="max-width: 150px;">
-                                        <span class="text-muted" style="min-width: 40px;">{{ prog }}%</span>
+                                               oninput="this.nextElementSibling.textContent=this.value+'%'">
+                                        <span class="text-muted min-w-40">{{ prog }}%</span>
                                         <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-check-lg"></i></button>
                                     </form>
                                 </div>
@@ -769,7 +769,7 @@
                             </div>
                             {% else %}
                             <div class="text-center py-4 text-muted">
-                                <i class="bi bi-calendar-x" style="font-size: 2.5rem;"></i>
+                                <i class="bi bi-calendar-x icon-2xl"></i>
                                 <p class="mt-2 mb-0">No viva sessions scheduled yet. Viva scheduling is managed by the admin.</p>
                             </div>
                             {% endif %}
@@ -843,7 +843,7 @@
                         <div class="col-md-3">
                             <div class="card dashboard-card text-center">
                                 <div class="card-body">
-                                    <i class="bi bi-cloud-arrow-up text-primary" style="font-size: 2rem;"></i>
+                                    <i class="bi bi-cloud-arrow-up text-primary icon-xl"></i>
                                     <h3 class="mt-2">{{ all_submissions|length }}</h3>
                                     <p class="text-muted mb-0">Total Submissions</p>
                                 </div>
@@ -852,7 +852,7 @@
                         <div class="col-md-3">
                             <div class="card dashboard-card text-center">
                                 <div class="card-body">
-                                    <i class="bi bi-hourglass-split text-warning" style="font-size: 2rem;"></i>
+                                    <i class="bi bi-hourglass-split text-warning icon-xl"></i>
                                     <h3 class="mt-2">{{ all_submissions|selectattr('status', 'eq', 'Submitted')|list|length }}</h3>
                                     <p class="text-muted mb-0">Pending Review</p>
                                 </div>
@@ -861,7 +861,7 @@
                         <div class="col-md-3">
                             <div class="card dashboard-card text-center">
                                 <div class="card-body">
-                                    <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                                    <i class="bi bi-check-circle text-success icon-xl"></i>
                                     <h3 class="mt-2">{{ all_submissions|selectattr('status', 'eq', 'Approved')|list|length }}</h3>
                                     <p class="text-muted mb-0">Approved</p>
                                 </div>
@@ -870,7 +870,7 @@
                         <div class="col-md-3">
                             <div class="card dashboard-card text-center">
                                 <div class="card-body">
-                                    <i class="bi bi-x-circle text-danger" style="font-size: 2rem;"></i>
+                                    <i class="bi bi-x-circle text-danger icon-xl"></i>
                                     <h3 class="mt-2">{{ all_submissions|selectattr('status', 'eq', 'Rejected')|list|length }}</h3>
                                     <p class="text-muted mb-0">Rejected</p>
                                 </div>
@@ -942,7 +942,7 @@
                             </div>
                             {% else %}
                             <div class="text-center py-5 text-muted">
-                                <i class="bi bi-cloud-arrow-up" style="font-size: 3rem;"></i>
+                                <i class="bi bi-cloud-arrow-up icon-xxl"></i>
                                 <p class="mt-3">No submissions received yet.</p>
                                 <p class="small">Student submissions will appear here once they upload their work.</p>
                             </div>
@@ -995,7 +995,7 @@
                         <div class="col-md-3">
                             <div class="card dashboard-card text-center">
                                 <div class="card-body">
-                                    <i class="bi bi-list-task text-primary" style="font-size: 2rem;"></i>
+                                    <i class="bi bi-list-task text-primary icon-xl"></i>
                                     <h3 class="mt-2">{{ all_assigned_works|length }}</h3>
                                     <p class="text-muted mb-0">Total Tasks</p>
                                 </div>
@@ -1004,7 +1004,7 @@
                         <div class="col-md-3">
                             <div class="card dashboard-card text-center">
                                 <div class="card-body">
-                                    <i class="bi bi-hourglass-split text-warning" style="font-size: 2rem;"></i>
+                                    <i class="bi bi-hourglass-split text-warning icon-xl"></i>
                                     <h3 class="mt-2">{{ all_assigned_works|selectattr('status', 'eq', 'Pending')|list|length }}</h3>
                                     <p class="text-muted mb-0">Pending</p>
                                 </div>
@@ -1013,7 +1013,7 @@
                         <div class="col-md-3">
                             <div class="card dashboard-card text-center">
                                 <div class="card-body">
-                                    <i class="bi bi-check2-circle text-success" style="font-size: 2rem;"></i>
+                                    <i class="bi bi-check2-circle text-success icon-xl"></i>
                                     <h3 class="mt-2">{{ all_assigned_works|selectattr('status', 'eq', 'Completed')|list|length }}</h3>
                                     <p class="text-muted mb-0">Completed</p>
                                 </div>
@@ -1022,7 +1022,7 @@
                         <div class="col-md-3">
                             <div class="card dashboard-card text-center">
                                 <div class="card-body">
-                                    <i class="bi bi-exclamation-triangle text-danger" style="font-size: 2rem;"></i>
+                                    <i class="bi bi-exclamation-triangle text-danger icon-xl"></i>
                                     <h3 class="mt-2">{{ all_assigned_works|selectattr('status', 'eq', 'Overdue')|list|length }}</h3>
                                     <p class="text-muted mb-0">Overdue</p>
                                 </div>
@@ -1193,7 +1193,7 @@
                             </div>
                             {% else %}
                             <div class="text-center py-5 text-muted">
-                                <i class="bi bi-list-task" style="font-size: 3rem;"></i>
+                                <i class="bi bi-list-task icon-xxl"></i>
                                 <p class="mt-3">No work assigned yet.</p>
                                 <p class="small">Use the form above to assign tasks to your students.</p>
                             </div>
@@ -1331,7 +1331,7 @@
                         <div class="col-md-3 mb-3">
                             <div class="card border-0 shadow-sm text-center py-3">
                                 <div class="card-body">
-                                    <i class="bi bi-kanban text-primary" style="font-size: 2rem;"></i>
+                                    <i class="bi bi-kanban text-primary icon-xl"></i>
                                     <h3 class="mt-2 mb-0">{{ supervised_groups|length }}</h3>
                                     <small class="text-muted">Total Groups</small>
                                 </div>
@@ -1340,7 +1340,7 @@
                         <div class="col-md-3 mb-3">
                             <div class="card border-0 shadow-sm text-center py-3">
                                 <div class="card-body">
-                                    <i class="bi bi-chat-quote text-success" style="font-size: 2rem;"></i>
+                                    <i class="bi bi-chat-quote text-success icon-xl"></i>
                                     <h3 class="mt-2 mb-0">{{ all_remarks|length }}</h3>
                                     <small class="text-muted">Total Remarks</small>
                                 </div>
@@ -1349,7 +1349,7 @@
                         <div class="col-md-3 mb-3">
                             <div class="card border-0 shadow-sm text-center py-3">
                                 <div class="card-body">
-                                    <i class="bi bi-flag text-warning" style="font-size: 2rem;"></i>
+                                    <i class="bi bi-flag text-warning icon-xl"></i>
                                     <h3 class="mt-2 mb-0">{{ all_assigned_works|length }}</h3>
                                     <small class="text-muted">Assigned Tasks</small>
                                 </div>
@@ -1358,7 +1358,7 @@
                         <div class="col-md-3 mb-3">
                             <div class="card border-0 shadow-sm text-center py-3">
                                 <div class="card-body">
-                                    <i class="bi bi-calendar-event text-info" style="font-size: 2rem;"></i>
+                                    <i class="bi bi-calendar-event text-info icon-xl"></i>
                                     <h3 class="mt-2 mb-0">{{ all_vivas|length }}</h3>
                                     <small class="text-muted">Viva Sessions</small>
                                 </div>
@@ -1410,9 +1410,9 @@
                                                 <span class="text-muted">No members</span>
                                                 {% endif %}
                                             </td>
-                                            <td style="min-width: 120px;">
+                                            <td class="min-w-120">
                                                 <div class="d-flex align-items-center">
-                                                    <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                    <div class="progress flex-grow-1 me-2 progress-sm">
                                                         <div class="progress-bar {% if prog >= 75 %}bg-success{% elif prog >= 40 %}bg-warning{% else %}bg-danger{% endif %}" style="width: {{ prog }}%"></div>
                                                     </div>
                                                     <small class="fw-bold">{{ prog }}%</small>
@@ -1460,7 +1460,7 @@
                             </div>
                             {% else %}
                             <div class="text-center py-4 text-muted">
-                                <i class="bi bi-folder-x" style="font-size: 2.5rem;"></i>
+                                <i class="bi bi-folder-x icon-2xl"></i>
                                 <p class="mt-2 mb-0">No groups assigned yet.</p>
                             </div>
                             {% endif %}
@@ -1499,7 +1499,7 @@
                                         </div>
                                     </div>
                                     {% set total_ws = all_assigned_works|length %}
-                                    <div class="progress" style="height: 12px;">
+                                    <div class="progress progress-medium">
                                         <div class="progress-bar bg-success" style="width: {{ (ws_completed|length / total_ws * 100)|round }}%"></div>
                                         <div class="progress-bar bg-warning" style="width: {{ (ws_pending|length / total_ws * 100)|round }}%"></div>
                                         <div class="progress-bar bg-danger" style="width: {{ (ws_overdue|length / total_ws * 100)|round }}%"></div>
@@ -1530,7 +1530,7 @@
                                     </div>
                                     {% else %}
                                     <div class="text-center py-3 text-muted">
-                                        <i class="bi bi-flag" style="font-size: 2rem;"></i>
+                                        <i class="bi bi-flag icon-xl"></i>
                                         <p class="mt-2 mb-0">No tasks assigned yet.</p>
                                     </div>
                                     {% endif %}
@@ -1581,7 +1581,7 @@
                                     </div>
                                     {% set total_groups = supervised_groups|length %}
                                     {% if total_groups > 0 %}
-                                    <div class="progress" style="height: 12px;">
+                                    <div class="progress progress-medium">
                                         <div class="progress-bar bg-success" style="width: {{ (ev_accepted|length / total_groups * 100)|round }}%"></div>
                                         <div class="progress-bar bg-warning" style="width: {{ (ev_conditional|length / total_groups * 100)|round }}%"></div>
                                         <div class="progress-bar bg-danger" style="width: {{ (ev_deferred|length / total_groups * 100)|round }}%"></div>
@@ -1659,7 +1659,7 @@
                             {% endif %}
                             {% else %}
                             <div class="text-center py-3 text-muted">
-                                <i class="bi bi-chat-square" style="font-size: 2rem;"></i>
+                                <i class="bi bi-chat-square icon-xl"></i>
                                 <p class="mt-2 mb-0">No remarks sent yet.</p>
                             </div>
                             {% endif %}
@@ -1718,7 +1718,7 @@
                             {% endif %}
                             {% else %}
                             <div class="text-center py-3 text-muted">
-                                <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
+                                <i class="bi bi-calendar-x icon-xl"></i>
                                 <p class="mt-2 mb-0">No viva sessions scheduled.</p>
                             </div>
                             {% endif %}
@@ -1791,7 +1791,7 @@
                                     <tbody>
                                         {% for r in resources %}
                                         <tr>
-                                            <td><i class="bi {{ r.icon_class }}" style="font-size: 1.5rem;"></i></td>
+                                            <td><i class="bi {{ r.icon_class }} icon-lg"></i></td>
                                             <td>
                                                 <strong>{{ r.title }}</strong>
                                                 {% if r.description %}<br><small class="text-muted">{{ r.description }}</small>{% endif %}
@@ -1816,7 +1816,7 @@
                             </div>
                             {% else %}
                             <div class="text-center py-5 text-muted">
-                                <i class="bi bi-journal-x" style="font-size: 3rem;"></i>
+                                <i class="bi bi-journal-x icon-xxl"></i>
                                 <p class="mt-2 mb-0">No resources uploaded yet. Use the form above to add one.</p>
                             </div>
                             {% endif %}

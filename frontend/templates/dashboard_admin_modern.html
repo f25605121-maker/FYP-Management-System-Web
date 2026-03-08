@@ -16,6 +16,12 @@
     
     <style>
         /* Additional modern styles specific to this dashboard */
+        .icon-lg { font-size: 1.5rem; }
+        .icon-xl { font-size: 2rem; }
+        .icon-xxl { font-size: 3rem; }
+        .progress-tall { height: 25px; }
+        .d-inline { display: inline; }
+        .scrollable-list { max-height: 300px; overflow-y: auto; background-color: #f8f9fa; }
         /* Navbar must sit above dashboard-header so dropdown opens on top */
         .navbar {
             position: relative;
@@ -487,7 +493,7 @@
                                         {% endfor %}
                                     {% else %}
                                         <div class="text-center text-muted py-4">
-                                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                                            <i class="bi bi-inbox icon-xl"></i>
                                             <p class="mt-2 mb-0">No recent activity yet</p>
                                         </div>
                                     {% endif %}
@@ -562,17 +568,17 @@
                                         {% set teacher_percent = (teachers|length / total_u * 100)|round|int if total_u > 0 else 0 %}
                                         {% set supervisor_percent = (supervisors|length / total_u * 100)|round|int if total_u > 0 else 0 %}
                                         {% set admin_percent = (admins|length / total_u * 100)|round|int if total_u > 0 else 0 %}
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ student_percent }}%;">Students ({{ student_percent }}%)</div>
+                                        <div class="progress mb-2 progress-tall">
+                                            <div class="progress-bar bg-primary" role="progressbar" title="Students" style="width: {{ student_percent }}%;">Students ({{ student_percent }}%)</div>
                                         </div>
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ teacher_percent }}%;">Teachers ({{ teacher_percent }}%)</div>
+                                        <div class="progress mb-2 progress-tall">
+                                            <div class="progress-bar bg-success" role="progressbar" title="Teachers" style="width: {{ teacher_percent }}%;">Teachers ({{ teacher_percent }}%)</div>
                                         </div>
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ supervisor_percent }}%;">Supervisors ({{ supervisor_percent }}%)</div>
+                                        <div class="progress mb-2 progress-tall">
+                                            <div class="progress-bar bg-info" role="progressbar" title="Supervisors" style="width: {{ supervisor_percent }}%;">Supervisors ({{ supervisor_percent }}%)</div>
                                         </div>
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ admin_percent }}%;">Admins ({{ admin_percent }}%)</div>
+                                        <div class="progress mb-2 progress-tall">
+                                            <div class="progress-bar bg-danger" role="progressbar" title="Admins" style="width: {{ admin_percent }}%;">Admins ({{ admin_percent }}%)</div>
                                         </div>
                                     </div>
                                 </div>
@@ -584,17 +590,17 @@
                                         {% set accepted_percent = (accepted_count / total_p * 100)|round|int if total_p > 0 else 0 %}
                                         {% set conditional_percent = (conditional_count / total_p * 100)|round|int if total_p > 0 else 0 %}
                                         {% set deferred_percent = (deferred_count / total_p * 100)|round|int if total_p > 0 else 0 %}
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-secondary" role="progressbar" style="width: {{ pending_percent }}%;">Pending ({{ pending_percent }}%)</div>
+                                        <div class="progress mb-2 progress-tall">
+                                            <div class="progress-bar bg-secondary" role="progressbar" title="Pending" style="width: {{ pending_percent }}%;">Pending ({{ pending_percent }}%)</div>
                                         </div>
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ accepted_percent }}%;">Accepted ({{ accepted_percent }}%)</div>
+                                        <div class="progress mb-2 progress-tall">
+                                            <div class="progress-bar bg-success" role="progressbar" title="Accepted" style="width: {{ accepted_percent }}%;">Accepted ({{ accepted_percent }}%)</div>
                                         </div>
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ conditional_percent }}%;">Conditional ({{ conditional_percent }}%)</div>
+                                        <div class="progress mb-2 progress-tall">
+                                            <div class="progress-bar bg-warning" role="progressbar" title="Conditional" style="width: {{ conditional_percent }}%;">Conditional ({{ conditional_percent }}%)</div>
                                         </div>
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ deferred_percent }}%;">Deferred ({{ deferred_percent }}%)</div>
+                                        <div class="progress mb-2 progress-tall">
+                                            <div class="progress-bar bg-danger" role="progressbar" title="Deferred" style="width: {{ deferred_percent }}%;">Deferred ({{ deferred_percent }}%)</div>
                                         </div>
                                     </div>
                                 </div>
@@ -757,7 +763,7 @@
                                     <tr>
                                         <td colspan="6" class="text-center py-4">
                                             <div class="text-muted">
-                                                <i class="bi bi-search" style="font-size: 2rem;"></i>
+                                                <i class="bi bi-search icon-xl"></i>
                                                 <p class="mt-2">No users found matching your criteria.</p>
                                             </div>
                                         </td>
@@ -935,7 +941,7 @@
                             <div class="card h-100">
                                 <div class="card-body">
                                     <h5 class="card-title d-flex align-items-center">
-                                        <i class="bi bi-people text-primary me-2" style="font-size: 1.5rem;"></i> User Reports
+                                        <i class="bi bi-people text-primary me-2 icon-lg"></i> User Reports
                                     </h5>
                                     <p class="card-text">Generate and download reports related to system users.</p>
                                     <div class="d-grid gap-2">
@@ -955,7 +961,7 @@
                             <div class="card h-100">
                                 <div class="card-body">
                                     <h5 class="card-title d-flex align-items-center">
-                                        <i class="bi bi-kanban text-success me-2" style="font-size: 1.5rem;"></i> Project Reports
+                                        <i class="bi bi-kanban text-success me-2 icon-lg"></i> Project Reports
                                     </h5>
                                     <p class="card-text">Generate and download reports related to projects and progress.</p>
                                     <div class="d-grid gap-2">
@@ -975,7 +981,7 @@
                             <div class="card h-100">
                                 <div class="card-body">
                                     <h5 class="card-title d-flex align-items-center">
-                                        <i class="bi bi-clipboard-check text-info me-2" style="font-size: 1.5rem;"></i> Evaluation Reports
+                                        <i class="bi bi-clipboard-check text-info me-2 icon-lg"></i> Evaluation Reports
                                     </h5>
                                     <p class="card-text">Generate and download reports related to evaluations and grades.</p>
                                     <div class="d-grid gap-2">
@@ -1131,7 +1137,7 @@
                                                     </td>
                                                     <td>
                                                         {% if not tu.is_used %}
-                                                        <form action="{{ url_for('admin_delete_teacher_username', username_id=tu.id) }}" method="POST" style="display:inline;" onsubmit="sessionStorage.setItem('scrollToSettings','true');">
+                                                        <form action="{{ url_for('admin_delete_teacher_username', username_id=tu.id) }}" method="POST" class="d-inline" onsubmit="sessionStorage.setItem('scrollToSettings','true');">
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                             <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete username {{ tu.username }}?')">
                                                                 <i class="bi bi-trash"></i>
@@ -1220,7 +1226,7 @@
                                     <tbody>
                                         {% for r in resources %}
                                         <tr>
-                                            <td><i class="bi {{ r.icon_class }}" style="font-size: 1.5rem;"></i></td>
+                                            <td><i class="bi {{ r.icon_class }} icon-lg"></i></td>
                                             <td>
                                                 <strong>{{ r.title }}</strong>
                                                 {% if r.description %}<br><small class="text-muted">{{ r.description }}</small>{% endif %}
@@ -1243,7 +1249,7 @@
                             </div>
                             {% else %}
                             <div class="text-center py-5 text-muted">
-                                <i class="bi bi-journal-x" style="font-size: 3rem;"></i>
+                                <i class="bi bi-journal-x icon-xxl"></i>
                                 <p class="mt-2 mb-0">No resources uploaded yet. Use the form above to add one.</p>
                             </div>
                             {% endif %}
@@ -1287,7 +1293,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Add Students to Project</label>
-                            <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto; background-color: #f8f9fa;">
+                            <div class="border rounded p-3 scrollable-list">
                                 {% if students %}
                                 {% for student in students %}
                                 <div class="form-check">
@@ -1321,7 +1327,7 @@
                         <div class="mb-3"><label for="group_project_title" class="form-label">Project Title</label><input type="text" class="form-control" id="group_project_title" name="project_title" required></div>
                         <div class="mb-3">
                             <label class="form-label">Select Students <span class="text-danger">*</span></label>
-                            <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto; background-color: #f8f9fa;">
+                            <div class="border rounded p-3 scrollable-list">
                                 {% for student in students %}
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" name="student_ids" value="{{ student.id }}" id="student_{{ student.id }}">
