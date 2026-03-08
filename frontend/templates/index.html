@@ -437,13 +437,36 @@
             .hero-visual { margin-top: 3rem; }
             .stats-strip { gap: 1.5rem; }
             .stat-number { font-size: 1.4rem; }
+            .section-header h2 { font-size: 2rem; }
+        }
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .hero-desc { font-size: 0.95rem; }
+            .stats-strip { flex-wrap: wrap; gap: 1rem; justify-content: center; }
+            .stat-item { min-width: 80px; text-align: center; }
+            .stat-number { font-size: 1.2rem; }
+            .cta-box { padding: 2rem 1.5rem; }
+            .cta-box h2 { font-size: 1.5rem; }
+            .cta-box p { font-size: 0.95rem; margin-bottom: 1.5rem; }
+            .section-header h2 { font-size: 1.6rem; }
+            .section-header p { font-size: 0.95rem; }
+            .features-section, .how-section, .cta-section { padding: 3rem 0; }
+            .feature-card { padding: 1.5rem; }
+            .navbar-brand { font-size: 1.1rem; }
+            .footer-custom { flex-direction: column; text-align: center; }
+            .footer-links { justify-content: center; }
         }
         @media (max-width: 575px) {
-            .hero h1 { font-size: 2rem; }
+            .hero h1 { font-size: 1.65rem; }
             .hero-buttons { flex-direction: column; }
-            .stats-strip { flex-wrap: wrap; gap: 1rem; }
-            .cta-box { padding: 2.5rem 1.5rem; }
-            .cta-box h2 { font-size: 1.6rem; }
+            .hero-buttons .btn-hero, .hero-buttons .btn-hero-outline { width: 100%; text-align: center; }
+            .stats-strip { flex-direction: column; align-items: center; gap: 0.75rem; }
+            .cta-box { padding: 1.5rem 1rem; border-radius: 18px; }
+            .cta-box h2 { font-size: 1.3rem; }
+            .btn-cta { padding: 0.75rem 1.8rem; font-size: 0.9rem; }
+            .step-card { padding: 1.5rem 1rem; }
+            .nav-buttons { gap: 0.5rem; }
+            .btn-nav { padding: 0.5rem 0.9rem; font-size: 0.85rem; }
         }
 
         /* ── Fade-in animation ── */

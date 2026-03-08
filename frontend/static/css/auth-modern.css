@@ -437,11 +437,29 @@
     .auth-hero { display: none; }
     .auth-form-wrap { padding: 2.2rem; }
 }
+@media (max-width: 768px) {
+    .auth-body { padding: 1rem; }
+    .auth-form-wrap { padding: 1.8rem; }
+    .field-row { grid-template-columns: 1fr; gap: 0.75rem; }
+    .social-row { grid-template-columns: 1fr; }
+    .auth-form-header h2 { font-size: 1.55rem; }
+}
 @media (max-width: 480px) {
-    .auth-body { padding: 0.8rem; }
-    .auth-form-wrap { padding: 1.6rem; }
+    .auth-body { padding: 0.5rem; }
+    .auth-card { border-radius: 18px; }
+    .auth-form-wrap { padding: 1.25rem 1rem; }
     .field-row { grid-template-columns: 1fr; }
     .social-row { grid-template-columns: 1fr; }
     .radio-group { flex-direction: column; }
     .form-options { flex-direction: column; gap: 0.8rem; align-items: flex-start; }
+    .auth-form-header h2 { font-size: 1.35rem; }
+    .auth-form-header p { font-size: 0.85rem; }
+    .btn-auth { padding: 0.8rem; font-size: 0.9rem; }
+    .field-label { font-size: 0.78rem; }
+    .input-wrap input,
+    .input-wrap select { font-size: 16px; padding: 0.7rem 0.8rem 0.7rem 2.4rem; }
+}
+@media (max-width: 360px) {
+    .auth-form-wrap { padding: 1rem 0.75rem; }
+    .auth-card { border-radius: 14px; }
 }
