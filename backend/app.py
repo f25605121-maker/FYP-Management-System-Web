@@ -4,6 +4,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 from functools import wraps
 import secrets
@@ -41,6 +42,8 @@ app = Flask(
     template_folder=os.path.join(BASE_DIR, 'frontend', 'templates'),
     static_folder=os.path.join(BASE_DIR, 'frontend', 'static')
 )
+# Trust proxy headers so url_for generates https:// behind Railway/reverse proxy
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 # Read from environment in production; allow a dev-only fallback for local runs.
 _secret_key = os.environ.get('SECRET_KEY')
 _is_dev = app.debug or os.environ.get('FLASK_ENV') == 'development'
