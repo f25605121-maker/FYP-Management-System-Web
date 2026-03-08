@@ -292,6 +292,8 @@ class User(UserMixin, db.Model):
     google_id = db.Column(db.String(100), unique=True, nullable=True)
     reset_token = db.Column(db.String(100), nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
+    is_verified = db.Column(db.Boolean, default=False, nullable=False)
+    verification_token = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
     # Extended profile fields
@@ -328,6 +330,11 @@ class User(UserMixin, db.Model):
         self.reset_token = None
         self.reset_token_expiry = None
         db.session.commit()
+
+    def generate_verification_token(self):
+        self.verification_token = secrets.token_hex(16)
+        db.session.commit()
+        return self.verification_token
 
 class LoginAttempt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -844,6 +851,11 @@ def login():
                 flash(f'Invalid role selected. You are registered as a {user.role}.', 'danger')
                 return render_template('login_simple.html')
             
+            # Check email verification
+            if not user.is_verified and user.role != 'admin':
+                flash('Please verify your email before logging in. Check your inbox for the verification link.', 'warning')
+                return render_template('login_simple.html', show_resend=True, resend_email=email)
+            
             # Log successful login
             login_attempt = LoginAttempt(
                 email=email,
@@ -963,7 +975,8 @@ def signup():
             highest_degree=highest_degree,
             specialization=specialization,
             affiliation=affiliation,
-            other_affiliation=other_affiliation
+            other_affiliation=other_affiliation,
+            is_verified=False
         )
         user.set_password(password)
         
@@ -978,10 +991,90 @@ def signup():
                 teacher_username.user_id = user.id
         db.session.commit()
         
-        flash('Account created successfully! Please login.', 'success')
+        # Send verification email
+        token = user.generate_verification_token()
+        verify_url = url_for('verify_email', token=token, _external=True)
+        
+        if MAIL_CONFIGURED:
+            subject = "Verify Your Email - FYP Management System"
+            html_body = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #4f46e5;">Email Verification</h2>
+                <p>Hi {first_name},</p>
+                <p>Thank you for signing up! Please verify your email address by clicking the button below:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{verify_url}" style="background: #4f46e5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-size: 16px;">Verify Email</a>
+                </div>
+                <p>Or copy and paste this link in your browser:</p>
+                <p style="word-break: break-all; color: #4f46e5;">{verify_url}</p>
+                <p style="color: #666; font-size: 12px;">If you did not create an account, please ignore this email.</p>
+            </div>
+            """
+            success, msg = send_email(email, subject, html_body)
+            if success:
+                flash('Account created! Please check your email to verify your account before logging in.', 'success')
+            else:
+                flash(f'Account created but could not send verification email. <a href="{verify_url}">Click here to verify</a>', 'warning')
+        else:
+            flash(f'Account created! <a href="{verify_url}">Click here to verify your email</a>', 'info')
+        
         return redirect(url_for('login'))
     
     return render_template('signup.html')
+
+@app.route('/verify-email/<token>')
+def verify_email(token):
+    user = User.query.filter_by(verification_token=token).first()
+    if not user:
+        flash('Invalid or expired verification link.', 'danger')
+        return redirect(url_for('login'))
+    
+    user.is_verified = True
+    user.verification_token = None
+    db.session.commit()
+    
+    flash('Email verified successfully! You can now log in.', 'success')
+    return redirect(url_for('login'))
+
+@app.route('/resend-verification', methods=['POST'])
+@rate_limit('3 per minute')
+def resend_verification():
+    email = request.form.get('email')
+    if not email:
+        flash('Email is required.', 'danger')
+        return redirect(url_for('login'))
+    
+    user = User.query.filter_by(email=email).first()
+    if not user or user.is_verified:
+        flash('If this email is registered and unverified, a verification link has been sent.', 'info')
+        return redirect(url_for('login'))
+    
+    token = user.generate_verification_token()
+    verify_url = url_for('verify_email', token=token, _external=True)
+    
+    if MAIL_CONFIGURED:
+        subject = "Verify Your Email - FYP Management System"
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #4f46e5;">Email Verification</h2>
+            <p>Hi {user.first_name},</p>
+            <p>Please verify your email address by clicking the button below:</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{verify_url}" style="background: #4f46e5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-size: 16px;">Verify Email</a>
+            </div>
+            <p>Or copy and paste this link in your browser:</p>
+            <p style="word-break: break-all; color: #4f46e5;">{verify_url}</p>
+        </div>
+        """
+        success, msg = send_email(email, subject, html_body)
+        if success:
+            flash('Verification email sent! Please check your inbox.', 'success')
+        else:
+            flash(f'Could not send email. <a href="{verify_url}">Click here to verify</a>', 'warning')
+    else:
+        flash(f'<a href="{verify_url}">Click here to verify your email</a>', 'info')
+    
+    return redirect(url_for('login'))
 
 @app.route('/logout')
 @login_required
@@ -2329,6 +2422,7 @@ def authorize():
                 
                 # Associate Google ID with the existing account
                 user.google_id = user_info['sub']
+                user.is_verified = True
                 db.session.commit()
             else:
                 # Create a new user with the selected role
@@ -2337,7 +2431,8 @@ def authorize():
                     first_name=user_info.get('given_name', ''),
                     last_name=user_info.get('family_name', ''),
                     role=selected_role,
-                    google_id=user_info['sub']
+                    google_id=user_info['sub'],
+                    is_verified=True
                 )
                 db.session.add(user)
                 db.session.commit()
@@ -5011,6 +5106,22 @@ with app.app_context():
         print(f"[STARTUP] DATABASE_URL env: {'SET' if os.environ.get('DATABASE_URL') else 'NOT SET'}", flush=True)
         db.create_all()
         print("[STARTUP] Database tables created/verified.", flush=True)
+        
+        # Migrate: add is_verified and verification_token columns if missing
+        try:
+            from sqlalchemy import inspect as sa_inspect, text
+            inspector = sa_inspect(db.engine)
+            existing_columns = [col['name'] for col in inspector.get_columns('user')]
+            with db.engine.begin() as conn:
+                if 'is_verified' not in existing_columns:
+                    conn.execute(text("ALTER TABLE \"user\" ADD COLUMN is_verified BOOLEAN DEFAULT true NOT NULL"))
+                    print("[STARTUP] Added is_verified column (existing users set to verified).", flush=True)
+                if 'verification_token' not in existing_columns:
+                    conn.execute(text("ALTER TABLE \"user\" ADD COLUMN verification_token VARCHAR(100)"))
+                    print("[STARTUP] Added verification_token column.", flush=True)
+        except Exception as me:
+            print(f"[STARTUP] Column migration note: {me}", flush=True)
+        
         # Seed or update admin user
         _admin_email = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
         _admin_pw = os.environ.get('ADMIN_PASSWORD')
@@ -5018,7 +5129,7 @@ with app.app_context():
         if not admin:
             if not _admin_pw:
                 _admin_pw = secrets.token_urlsafe(16)
-            admin = User(email=_admin_email, first_name='Admin', last_name='User', role='admin')
+            admin = User(email=_admin_email, first_name='Admin', last_name='User', role='admin', is_verified=True)
             admin.set_password(_admin_pw)
             db.session.add(admin)
             db.session.commit()
@@ -5027,6 +5138,7 @@ with app.app_context():
             # Update admin password to match env variable
             admin.set_password(_admin_pw)
             admin.role = 'admin'
+            admin.is_verified = True
             db.session.commit()
             print(f"[STARTUP] Admin password updated: {_admin_email}", flush=True)
         else:
@@ -5099,7 +5211,7 @@ if __name__ == '__main__':
                         if not _admin_pw:
                             _admin_pw = secrets.token_urlsafe(16)
                             print(f"[STARTUP] Generated admin password (set ADMIN_PASSWORD env var): {_admin_pw}")
-                        admin = User(email=_admin_email, first_name='Admin', last_name='User', role='admin')
+                        admin = User(email=_admin_email, first_name='Admin', last_name='User', role='admin', is_verified=True)
                         admin.set_password(_admin_pw)
                         db.session.add(admin)
                         db.session.commit()
