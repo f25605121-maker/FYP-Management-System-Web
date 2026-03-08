@@ -2280,7 +2280,7 @@ def login_google():
     
     # Require role selection before Google login
     selected_role = request.args.get('role', '').strip()
-    if not selected_role or selected_role not in ('student', 'faculty', 'teacher', 'supervisor', 'admin'):
+    if not selected_role or selected_role not in ('student', 'faculty', 'teacher', 'supervisor'):
         flash('Please select your role before signing in with Google.', 'warning')
         return redirect(url_for('login'))
     
@@ -3858,40 +3858,9 @@ def student_schedule():
 
 # Define a helper function to safely recreate database tables
 def recreate_tables():
-    print("Recreating database tables due to schema change...")
-    db.drop_all()
+    print("Ensuring database tables exist...")
     db.create_all()
-    print("Database tables recreated.")
-    
-    try:
-        # Check if admin user already exists
-        admin = User.query.filter_by(email='admin@example.com').first()
-        if not admin:
-            # Create initial users
-            admin = User(email='admin@example.com', first_name='Admin', last_name='User', role='admin')
-            admin.set_password('admin123')
-            db.session.add(admin)
-            
-            # Create a sample teacher
-            teacher = User(email='teacher@example.com', first_name='John', last_name='Smith', role='faculty')
-            teacher.set_password('teacher123')
-            db.session.add(teacher)
-            
-            # Create a sample supervisor
-            supervisor = User(email='supervisor@example.com', first_name='David', last_name='Johnson', role='supervisor')
-            supervisor.set_password('supervisor123')
-            db.session.add(supervisor)
-            
-            # Create a sample student
-            student = User(email='student@example.com', first_name='Sarah', last_name='Johnson', role='student')
-            student.set_password('student123')
-            db.session.add(student)
-            
-            db.session.commit()
-            print("Sample users created.")
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error creating sample users: {str(e)}")
+    print("Database tables verified/created.")
 
 # Helper function to fix the Viva table
 def fix_viva_table():
@@ -5044,10 +5013,9 @@ def login_activity():
                           logins_24h=logins_24h)
 
 def recreate_tables():
-    """Drop and recreate all tables."""
-    db.drop_all()
+    """Create any missing tables (safe — never drops existing data)."""
     db.create_all()
-    print("All tables recreated.")
+    print("All tables verified/created.")
 
 # Database initialization — always runs on startup to ensure tables exist
 with app.app_context():
@@ -5152,9 +5120,10 @@ if __name__ == '__main__':
                         print(f"Error creating admin user: {str(e)}")
             
         except Exception as e:
-            # If there's an error (like missing columns), drop and recreate all tables
+            # If there's an error (like missing columns), create any missing tables
             print(f"Error initializing database: {str(e)}")
-            recreate_tables()
+            db.create_all()
+            print("Tables created after error.")
 
     debug = os.environ.get('FLASK_ENV') == 'development'
     app.run(host='0.0.0.0', debug=debug)
