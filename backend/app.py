@@ -5015,8 +5015,8 @@ with app.app_context():
         print(f"[STARTUP] MAIL_PASSWORD env: {'SET' if os.environ.get('MAIL_PASSWORD') else 'NOT SET'}", flush=True)
         
         # Log all env vars starting with MAIL_ or DATABASE (names only, not values)
-        _env_keys = sorted([k for k in os.environ.keys() if any(x in k.upper() for x in ['MAIL', 'DATABASE', 'DB'])])
-        print(f"[STARTUP] Related env var names: {_env_keys}", flush=True)
+        _all_env = sorted(os.environ.keys())
+        print(f"[STARTUP] ALL env var names: {_all_env}", flush=True)
         
         try:
             db.create_all()
