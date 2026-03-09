@@ -135,52 +135,41 @@
             var parser = new DOMParser();
             var newDoc = parser.parseFromString(html, 'text/html');
 
-            // Update the main content area
-            // Try common content wrappers used across dashboards
-            var contentSelectors = [
-                '.main-content',           // admin dashboard
-                '.col-lg-10.main-content', // admin
-                '.container-fluid > .row', // general
-                'main',                     // semantic main
-                '.container'                // fallback
-            ];
-
+            // Strategy: update individual content-section divs and stats-grid
+            // instead of swapping the entire .main-content (which destroys inline scripts/event listeners)
             var updated = false;
-            for (var i = 0; i < contentSelectors.length; i++) {
-                var oldEl = document.querySelector(contentSelectors[i]);
-                var newEl = newDoc.querySelector(contentSelectors[i]);
-                if (oldEl && newEl) {
-                    // Swap inner HTML 
-                    oldEl.innerHTML = newEl.innerHTML;
-                    updated = true;
-                    break;
-                }
-            }
 
-            // If no main wrapper found, try swapping individual content sections
-            if (!updated) {
-                // Swap all content-section divs individually
-                newDoc.querySelectorAll('.content-section').forEach(function(newSec) {
+            // 1. Swap all content-section divs individually
+            newDoc.querySelectorAll('.content-section').forEach(function(newSec) {
+                if (newSec.id) {
                     var oldSec = document.getElementById(newSec.id);
                     if (oldSec) {
                         oldSec.innerHTML = newSec.innerHTML;
+                        updated = true;
                     }
-                });
-
-                // Also update stats grid
-                var newStats = newDoc.querySelector('.stats-grid');
-                var oldStats = document.querySelector('.stats-grid');
-                if (newStats && oldStats) {
-                    oldStats.innerHTML = newStats.innerHTML;
                 }
+            });
 
-                // Update sidebar badges
-                var newBadges = newDoc.querySelectorAll('.sidebar .badge');
-                var oldBadges = document.querySelectorAll('.sidebar .badge');
-                newBadges.forEach(function(nb, idx) {
-                    if (oldBadges[idx]) oldBadges[idx].textContent = nb.textContent;
-                });
+            // 2. Update stats grid
+            var newStats = newDoc.querySelector('.stats-grid');
+            var oldStats = document.querySelector('.stats-grid');
+            if (newStats && oldStats) {
+                oldStats.innerHTML = newStats.innerHTML;
+                updated = true;
+            }
 
+            // 3. Update sidebar badges
+            var newBadges = newDoc.querySelectorAll('.sidebar .badge');
+            var oldBadges = document.querySelectorAll('.sidebar .badge');
+            newBadges.forEach(function(nb, idx) {
+                if (oldBadges[idx]) oldBadges[idx].textContent = nb.textContent;
+            });
+
+            // 4. Update dashboard header stats if present
+            var newHeader = newDoc.querySelector('.dashboard-header');
+            var oldHeader = document.querySelector('.dashboard-header');
+            if (newHeader && oldHeader) {
+                oldHeader.innerHTML = newHeader.innerHTML;
                 updated = true;
             }
 
@@ -237,33 +226,9 @@
 
     // Re-bind event listeners after DOM swap
     function rebindEventListeners() {
-        // Section links (admin dashboard sidebar navigation)
-        document.querySelectorAll('.section-link').forEach(function(link) {
-            // Remove old listener by cloning
-            var newLink = link.cloneNode(true);
-            link.parentNode.replaceChild(newLink, link);
-            newLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                var targetSection = this.getAttribute('data-section');
-                if (!targetSection) return;
-
-                document.querySelectorAll('.section-link').forEach(function(l) { l.classList.remove('active'); });
-                document.querySelectorAll('.content-section').forEach(function(s) {
-                    s.classList.remove('active');
-                    s.style.display = 'none';
-                });
-
-                var sidebarLink = document.querySelector('.sidebar .section-link[data-section="' + targetSection + '"]');
-                if (sidebarLink) sidebarLink.classList.add('active');
-
-                var sec = document.getElementById(targetSection);
-                if (sec) {
-                    sec.classList.add('active');
-                    sec.style.display = 'block';
-                }
-                window.scrollTo(0, 0);
-            });
-        });
+        // Note: sidebar and section-links are NOT swapped anymore,
+        // so they keep their original listeners. Only rebind elements
+        // inside the content sections that were refreshed.
 
         // Quick action card hover effects
         document.querySelectorAll('.quick-action-card').forEach(function(card) {
@@ -383,6 +348,18 @@
                 });
             });
         }
+
+        // Student dashboard: submit work buttons
+        document.querySelectorAll('.submit-work-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var id = this.getAttribute('data-id');
+                var title = this.getAttribute('data-title');
+                var titleEl = document.getElementById('submitWorkTitle');
+                var formEl = document.getElementById('submitWorkForm');
+                if (titleEl) titleEl.textContent = title;
+                if (formEl) formEl.action = '/student/update_work/' + id;
+            });
+        });
     }
 
     function scheduleRefresh(interval) {
