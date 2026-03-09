@@ -79,7 +79,10 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 # Database configuration
 # Priority: DATABASE_URL env var (Supabase/PostgreSQL) > SQLite fallback
-_database_url = os.environ.get('DATABASE_URL')
+# Railway may expose the URL under different variable names
+_database_url = (os.environ.get('DATABASE_URL')
+                 or os.environ.get('DATABASE_PRIVATE_URL')
+                 or os.environ.get('DATABASE_PUBLIC_URL'))
 if _database_url:
     # Supabase / external PostgreSQL
     # Fix Heroku/Supabase URI scheme: postgres:// → postgresql://
@@ -5009,8 +5012,12 @@ with app.app_context():
         _db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', 'NOT SET')
         print(f"[STARTUP] Database URI: {_db_uri[:40]}...", flush=True)
         print(f"[STARTUP] DATABASE_URL env: {'SET' if os.environ.get('DATABASE_URL') else 'NOT SET'}", flush=True)
+        print(f"[STARTUP] DATABASE_PRIVATE_URL env: {'SET' if os.environ.get('DATABASE_PRIVATE_URL') else 'NOT SET'}", flush=True)
+        print(f"[STARTUP] DATABASE_PUBLIC_URL env: {'SET' if os.environ.get('DATABASE_PUBLIC_URL') else 'NOT SET'}", flush=True)
         print(f"[STARTUP] MAIL_USERNAME env: {'SET' if os.environ.get('MAIL_USERNAME') else 'NOT SET'}", flush=True)
         print(f"[STARTUP] MAIL_PASSWORD env: {'SET' if os.environ.get('MAIL_PASSWORD') else 'NOT SET'}", flush=True)
+        if 'sqlite' in _db_uri:
+            print("[STARTUP] WARNING: Using SQLite — data will be LOST on container restart!", flush=True)
         
         # Log all env vars starting with MAIL_ or DATABASE (names only, not values)
         _all_env = sorted(os.environ.keys())
