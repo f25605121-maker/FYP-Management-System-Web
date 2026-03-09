@@ -208,6 +208,14 @@ document.addEventListener('DOMContentLoaded', () => {
             roleSelect.focus();
             return;
         }
+        if (roleSelect && roleSelect.value === 'admin') {
+            const wrap = roleSelect.closest('.input-wrap');
+            const errEl = roleSelect.closest('.field')?.querySelector('.field-error');
+            if (wrap) { wrap.classList.add('is-invalid'); }
+            if (errEl) { errEl.textContent = 'Admin cannot use Google login. Please use email and password.'; errEl.classList.add('show'); }
+            roleSelect.focus();
+            return;
+        }
         const role = roleSelect ? roleSelect.value : '';
         window.location.href = `/login/${provider}?role=${encodeURIComponent(role)}`;
     };
