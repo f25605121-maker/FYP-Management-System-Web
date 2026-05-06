@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Script to create missing ProjectStatus records for existing vivas.
-This ensures that faculty members can see assigned groups in their dashboard.
+This ensures that cordinator members can see assigned groups in their dashboard.
 """
 
 import sys

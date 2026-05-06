@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Project Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Complete Project Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Group Number</label>
+                        <input type="text" class="form-control" value="{{ group.group_id }}" disabled>
+                    </div>
+                    <form id="projectDetailsForm" action="{{ url_for('complete_project_details', group_id=group.id) }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="project_title" class="form-label">Project Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="project_title" name="project_title"
+                                value="{{ group.project_title if group.project_title != 'Pending Project Details' else '' }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="project_description" class="form-label">Project Description</label>
+                            <textarea class="form-control" id="project_description" name="project_description" rows="4">{{ group.project_description or '' }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="major" class="form-label">Project Domain</label>
+                            <select class="form-select" id="major" name="major">
+                                <option value="" {% if not group.details or not group.details.major %}selected{% endif %}>Select domain</option>
+                                <option value="AI/ML" {% if group.details and group.details.major == 'AI/ML' %}selected{% endif %}>AI/ML</option>
+                                <option value="Cyber Security" {% if group.details and group.details.major == 'Cyber Security' %}selected{% endif %}>Cyber Security</option>
+                                <option value="Blockchain" {% if group.details and group.details.major == 'Blockchain' %}selected{% endif %}>Blockchain</option>
+                                <option value="Web Development" {% if group.details and group.details.major == 'Web Development' %}selected{% endif %}>Web Development</option>
+                                <option value="Mobile App Development" {% if group.details and group.details.major == 'Mobile App Development' %}selected{% endif %}>Mobile App Development</option>
+                            </select>
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-2"></i>Save Project Details
+                            </button>
+                        </div>
+                    </form>
+                    <div class="d-flex justify-content-between mt-3">
+                        <a href="{{ url_for('dashboard_cordinator') }}" class="btn btn-secondary">Skip and return</a>
+                        <form action="{{ url_for('supervisor_delete_project', project_id=group.id) }}" method="post" onsubmit="return confirm('Delete this group and its pending project?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash me-2"></i>Delete Group
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

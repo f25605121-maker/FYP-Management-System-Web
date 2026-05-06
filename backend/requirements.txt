@@ -14,3 +14,8 @@ flask-limiter
 psycopg2-binary
 pg8000
 openpyxl
+flask-socketio==5.3.5
+python-socketio==5.10.0
+python-engineio==4.8.0
+python-dotenv
+aiofiles

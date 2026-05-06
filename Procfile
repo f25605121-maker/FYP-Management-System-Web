@@ -1,1 +1,3 @@
-web: gunicorn backend.app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+# Railway production configuration with WebSocket support
+# Uses eventlet for high-performance async I/O
+web: gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 120 --access-logfile - --error-logfile - backend.app:app

@@ -1,5 +1,6 @@
 import sys
-sys.path.insert(0, '/Users/01-135231-091/Desktop/fyp')
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import app, db, User
 

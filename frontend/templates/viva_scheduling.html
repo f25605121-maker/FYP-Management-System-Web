@@ -90,9 +90,11 @@
                     <h1><i class="bi bi-calendar-check me-2"></i>FYP Viva Scheduling</h1>
                     <p>Schedule and manage viva examinations for project groups</p>
                 </div>
+                {% if can_manage_viva %}
                 <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#scheduleVivaModal">
                     <i class="bi bi-plus-circle me-2"></i>Schedule New Viva
                 </button>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -162,6 +164,12 @@
                 {% endif %}
                 {% endwith %}
 
+                {% if not can_manage_viva %}
+                <div class="alert alert-info">
+                    <i class="bi bi-eye me-2"></i>Viva scheduling is view-only for admin. You can only view scheduled vivas.
+                </div>
+                {% endif %}
+
                 <!-- Scheduled Vivas Table -->
                 <div class="card mb-4">
                     <div class="card-header bg-white">
@@ -208,6 +216,7 @@
                                                 data-bs-target="#viewVivaModal{{ viva.id }}">
                                                 <i class="bi bi-eye"></i>
                                             </button>
+                                            {% if can_manage_viva %}
                                             <form method="POST"
                                                 action="{{ url_for('admin_delete_viva', viva_id=viva.id) }}"
                                                 class="d-inline">
@@ -217,6 +226,7 @@
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </form>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -234,6 +244,7 @@
         </div>
     </div>
 
+    {% if can_manage_viva %}
     <!-- Schedule Viva Modal -->
     <div class="modal fade" id="scheduleVivaModal" tabindex="-1" aria-labelledby="scheduleVivaModalLabel"
         aria-hidden="true">
@@ -323,6 +334,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- View Viva Modals -->
     {% for viva in vivas %}
@@ -386,6 +398,10 @@
             const timeInput = document.getElementById('scheduled_time');
             const roomInput = document.getElementById('location');
             const availabilityMessage = document.getElementById('availabilityMessage');
+
+            if (!teacherSelect || !dateInput || !timeInput || !roomInput || !availabilityMessage) {
+                return;
+            }
 
             function checkAvailability() {
                 const teacherId = teacherSelect.value;

@@ -1,0 +1,2306 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FYP Schedule & Deadlines</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="{{ url_for('static', filename='css/modern-ui.css') }}" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .navbar { position: relative; z-index: 1050; }
+        .dashboard-header {
+            background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+            color: white; padding: 2rem 1.5rem; margin: 0;
+            border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+            position: relative; z-index: 1000; overflow: visible;
+        }
+        .welcome-text { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .subtitle-text { opacity: 0.9; font-weight: 500; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .content-section { display: none; animation: fadeInUp 0.5s ease-out; }
+        .content-section.active { display: block; }
+        .quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .quick-action-card {
+            background: white; border-radius: var(--radius-lg); padding: 1.5rem; text-align: center;
+            box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200);
+            transition: all 0.3s ease; cursor: pointer; text-decoration: none; color: var(--gray-800);
+        }
+        .quick-action-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--primary-300); color: var(--primary-700); }
+        .quick-action-card i { font-size: 2.5rem; color: var(--primary-600); margin-bottom: 1rem; }
+        .student-group-box {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.1rem;
+            min-width: 72px;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid rgba(37, 99, 235, 0.18);
+            border-radius: 0.75rem;
+            background: rgba(37, 99, 235, 0.06);
+            line-height: 1.1;
+        }
+        .student-group-box .group-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--gray-500);
+        }
+        .student-group-box .group-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--primary-700);
+        }
+        .reports-hero {
+            background: linear-gradient(135deg, #0f4fb8 0%, #1d67d6 100%);
+            color: #ffffff;
+            border-radius: 1.25rem;
+            box-shadow: 0 20px 45px rgba(15, 79, 184, 0.16);
+        }
+        .reports-panel {
+            background: #ffffff;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            border-radius: 1rem;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+        }
+        .reports-mini-card {
+            background: #ffffff;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            border-radius: 1rem;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+        }
+        .analytics-donut {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            position: relative;
+            margin: 0 auto;
+        }
+        .analytics-donut::after {
+            content: '';
+            width: 92px;
+            height: 92px;
+            border-radius: 50%;
+            background: #fff;
+            position: absolute;
+        }
+        .analytics-donut > span {
+            position: relative;
+            z-index: 1;
+            font-weight: 700;
+            color: #0f172a;
+            text-align: center;
+        }
+        .report-alert-card {
+            border-radius: 1rem;
+            border: 1px solid rgba(37, 99, 235, 0.12);
+            background: #ffffff;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+        }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+            .quick-actions { grid-template-columns: 1fr; }
+            .sidebar { position: fixed; left: -100%; top: 0; z-index: 1000; transition: left 0.3s ease; }
+            .sidebar.show { left: 0; }
+            .main-content { margin-left: 0; }
+        }
+    </style>
+</head>
+
+<body style="background-color: #f8f9fa;">
+    <!-- Modern Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-mortarboard me-2"></i>
+                <span>FYP cordinator</span>
+            </a>
+            <div class="d-flex ms-auto">
+                <div class="dropdown">
+                    <button class="btn btn-light btn-sm py-2 px-3" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle me-2"></i>
+                        <span>{{ current_user.first_name }}</span>
+                        <i class="bi bi-chevron-down ms-2"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ url_for('profile') }}">
+                            <i class="bi bi-person me-2"></i>Profile
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                            <i class="bi bi-box-arrow-right me-2"></i>Logout
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="welcome-text">Welcome back, {{ current_user.first_name }}!</h1>
+                    <p class="subtitle-text">Department: {{ coordinator_department }} — showing department student, group, and project summary.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row g-0">
+            <!-- Modern Sidebar -->
+            <div class="col-lg-2 p-0 sidebar">
+                <div class="d-flex flex-column flex-shrink-0 p-3">
+                    <ul class="nav nav-pills flex-column gap-2">
+                        <li class="nav-item">
+                            <a href="#dashboard" class="nav-link section-link active" data-section="dashboard">
+                                <i class="bi bi-grid me-3"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#project-proposals" class="nav-link section-link" data-section="project-proposals">
+                                <i class="bi bi-file-earmark-check me-3"></i>Project Proposals
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#assigned-groups" class="nav-link section-link" data-section="assigned-groups">
+                                <i class="bi bi-people-fill me-3"></i>Assigned Groups
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#students" class="nav-link section-link" data-section="students">
+                                <i class="bi bi-people me-3"></i>Students
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#submissions" class="nav-link section-link" data-section="submissions">
+                                <i class="bi bi-cloud-arrow-up me-3"></i>Submissions
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#schedule" class="nav-link section-link" data-section="schedule">
+                                <i class="bi bi-calendar-event me-3"></i>Schedule
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#reports" class="nav-link section-link" data-section="reports">
+                                <i class="bi bi-file-earmark-text me-3"></i>Reports
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="col-lg-10 main-content p-4">
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            <i class="bi {% if category == 'success' %}bi-check-circle{% elif category == 'danger' %}bi-exclamation-triangle{% else %}bi-info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                <!-- Dashboard Section -->
+                <div id="dashboard" class="content-section active">
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card primary">
+                            <i class="bi bi-people-fill"></i>
+                            <div class="stat-value">{{ department_student_count }}</div>
+                            <div class="stat-label">Department Students</div>
+                        </div>
+                        <div class="stat-card success">
+                            <i class="bi bi-folder-fill"></i>
+                            <div class="stat-value">{{ department_group_count }}</div>
+                            <div class="stat-label">Department Groups</div>
+                        </div>
+                        <div class="stat-card warning">
+                            <i class="bi bi-journal-bookmark-fill"></i>
+                            <div class="stat-value">{{ department_project_count }}</div>
+                            <div class="stat-label">Department Projects</div>
+                        </div>
+                        <div class="stat-card danger">
+                            <i class="bi bi-person-x-fill"></i>
+                            <div class="stat-value">{{ department_unassigned_count }}</div>
+                            <div class="stat-label">Unassigned Students</div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="quick-actions">
+                        <a href="{{ url_for('add_project_and_group') }}" class="quick-action-card">
+                            <i class="bi bi-folder-plus"></i>
+                            <h5>Create Group</h5>
+                            <p>Create a new student group before adding project details</p>
+                        </a>
+                        <a href="#" class="quick-action-card section-link" data-section="assigned-groups">
+                            <i class="bi bi-people-fill"></i>
+                            <h5>Assigned Groups</h5>
+                            <p>Evaluate student groups</p>
+                        </a>
+                        <a href="#" class="quick-action-card section-link" data-section="evaluations">
+                            <i class="bi bi-clipboard-check"></i>
+                            <h5>Evaluations</h5>
+                            <p>Manage evaluations</p>
+                        </a>
+                        <a href="#" class="quick-action-card section-link" data-section="schedule">
+                            <i class="bi bi-calendar-event"></i>
+                            <h5>Schedule</h5>
+                            <p>View your schedule</p>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Project Proposals Section -->
+                <div id="project-proposals" class="content-section">
+                    <h2 class="mb-4">Project Proposals</h2>
+
+                    <!-- Tabs for Pending, Accepted, Rejected -->
+                    <ul class="nav nav-tabs mb-4" id="proposalTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-proposals" type="button" role="tab">
+                                <i class="bi bi-hourglass-split me-2"></i>Pending 
+                                <span class="badge bg-danger ms-2">{{ pending_proposals|length }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved-proposals" type="button" role="tab">
+                                <i class="bi bi-check-circle me-2"></i>Accepted
+                                <span class="badge bg-success ms-2">{{ approved_proposals|length }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected-proposals" type="button" role="tab">
+                                <i class="bi bi-x-circle me-2"></i>Rejected
+                                <span class="badge bg-danger ms-2">{{ rejected_proposals|length }}</span>
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="proposalTabContent">
+                        <!-- Pending Proposals -->
+                        <div class="tab-pane fade show active" id="pending-proposals" role="tabpanel">
+                            {% if pending_proposals %}
+                                <div class="row g-3">
+                                    {% for proposal in pending_proposals %}
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card h-100 border-primary" style="border-left: 4px solid #0d6efd;">
+                                            <div class="card-header bg-light">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <h6 class="card-title mb-1">{{ proposal.title }}</h6>
+                                                        <small class="text-muted">Group: {{ proposal.group.group_id }}</small>
+                                                    </div>
+                                                    <span class="badge bg-warning text-dark">{{ proposal.major }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <p class="card-text small text-muted mb-2">
+                                                    <strong>Submitted by:</strong> {{ proposal.student.first_name }} {{ proposal.student.last_name }}
+                                                </p>
+                                                <p class="card-text small mb-3">{{ proposal.description[:150] }}...</p>
+                                                <small class="text-muted d-block mb-2">
+                                                    <i class="bi bi-calendar me-1"></i>{{ proposal.created_at.strftime('%b %d, %Y at %H:%M') }}
+                                                </small>
+                                                {% if proposal.file_attachment %}
+                                                <small class="text-success d-block mb-2">
+                                                    <i class="bi bi-file-earmark me-1"></i>File attached
+                                                </small>
+                                                {% endif %}
+                                            </div>
+                                            <div class="card-footer bg-light">
+                                                <div class="btn-group btn-group-sm w-100" role="group">
+                                                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#proposalModal" data-proposal-id="{{ proposal.id }}" onclick="viewProposal({{ proposal.id }})">
+                                                        <i class="bi bi-eye me-1"></i>View
+                                                    </button>
+                                                    {% if proposal.file_attachment %}
+                                                    <a href="{{ url_for('download_proposal_file', proposal_id=proposal.id) }}" class="btn btn-outline-success">
+                                                        <i class="bi bi-download me-1"></i>Download
+                                                    </a>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="d-grid gap-2 mt-2">
+                                                    <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#approveModal" data-proposal-id="{{ proposal.id }}" onclick="prepareApprove({{ proposal.id }})">
+                                                        <i class="bi bi-check-lg me-1"></i>Approve
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal" data-proposal-id="{{ proposal.id }}" onclick="prepareReject({{ proposal.id }})">
+                                                        <i class="bi bi-x-lg me-1"></i>Reject
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>No pending proposals at the moment.
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Accepted Proposals -->
+                        <div class="tab-pane fade" id="approved-proposals" role="tabpanel">
+                            {% if approved_proposals %}
+                                <div class="row g-3">
+                                    {% for proposal in approved_proposals %}
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card h-100 border-success" style="border-left: 4px solid #198754;">
+                                            <div class="card-header bg-light">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <h6 class="card-title mb-1">{{ proposal.title }}</h6>
+                                                        <small class="text-muted">Group: {{ proposal.group.group_id }}</small>
+                                                    </div>
+                                                    <span class="badge bg-success">{{ proposal.major }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <p class="card-text small text-muted mb-2">
+                                                    <strong>Submitted by:</strong> {{ proposal.student.first_name }} {{ proposal.student.last_name }}
+                                                </p>
+                                                <p class="card-text small mb-3">{{ proposal.description[:150] }}...</p>
+                                                <div class="alert alert-success mb-2 py-1 px-2" style="font-size: 0.875rem;">
+                                                    <i class="bi bi-check-circle me-1"></i>Proposal was accepted
+                                                </div>
+                                                {% if proposal.feedback %}
+                                                <small class="text-muted"><strong>Feedback:</strong> {{ proposal.feedback[:100] }}...</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>No accepted proposals yet.
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Rejected Proposals -->
+                        <div class="tab-pane fade" id="rejected-proposals" role="tabpanel">
+                            {% if rejected_proposals %}
+                                <div class="row g-3">
+                                    {% for proposal in rejected_proposals %}
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card h-100 border-danger" style="border-left: 4px solid #dc3545;">
+                                            <div class="card-header bg-light">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <h6 class="card-title mb-1">{{ proposal.title }}</h6>
+                                                        <small class="text-muted">Group: {{ proposal.group.group_id }}</small>
+                                                    </div>
+                                                    <span class="badge bg-danger">{{ proposal.major }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <p class="card-text small text-muted mb-2">
+                                                    <strong>Submitted by:</strong> {{ proposal.student.first_name }} {{ proposal.student.last_name }}
+                                                </p>
+                                                <p class="card-text small mb-3">{{ proposal.description[:150] }}...</p>
+                                                <div class="alert alert-danger mb-2 py-1 px-2" style="font-size: 0.875rem;">
+                                                    <i class="bi bi-x-circle me-1"></i>Rejected
+                                                </div>
+                                                {% if proposal.feedback %}
+                                                <small class="text-muted"><strong>Reason:</strong> {{ proposal.feedback[:100] }}...</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>No rejected proposals yet.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assigned Groups Section -->
+                <div id="assigned-groups" class="content-section">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <div>
+                            <h2 class="mb-0">Department Groups</h2>
+                            <p class="text-muted mb-0">View all student groups in your department and manage them here.</p>
+                        </div>
+                        <a href="{{ url_for('add_project_and_group') }}" class="btn btn-primary">
+                            <i class="bi bi-folder-plus me-1"></i> Create Group
+                        </a>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">My Assigned Groups</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Group ID</th>
+                                                    <th>Project Title</th>
+                                                    <th>Members</th>
+                                                    <th>Progress</th>
+                                                    <th>Status</th>
+                                                    <th>Last Remark</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% if department_groups %}
+                                                {% for group in department_groups %}
+                                                {% set pd = all_project_details.get(group.id) %}
+                                                {% set prog = pd.progress if pd and pd.progress else 0 %}
+                                                {% set ps = all_project_statuses.get(group.id) %}
+                                                <tr>
+                                                    <td><strong>{{ group.group_id }}</strong></td>
+                                                    <td>{{ group.project_title }}</td>
+                                                    <td>
+                                                        <span class="badge bg-info">{{ group.members|length }}
+                                                            members</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="progress" style="height: 20px;">
+                                                            <div class="progress-bar {% if prog >= 75 %}bg-success{% elif prog >= 50 %}bg-info{% elif prog >= 25 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar"
+                                                                style="width: {{ prog }}%"></div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        {% if ps %}
+                                                        <span class="badge {% if ps.status == 'Accepted' %}bg-success{% elif ps.status == 'Conditionally Accepted' %}bg-warning text-dark{% elif ps.status == 'Deferred' %}bg-danger{% else %}bg-secondary{% endif %}">{{ ps.status }}</span>
+                                                        {% else %}
+                                                        <span class="badge bg-secondary">Pending</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% set group_remarks_list = remarks|selectattr('group_id', 'eq', group.group_id)|list %}
+                                                        {% if group_remarks_list %}
+                                                        {{ group_remarks_list[0].timestamp.strftime('%b %d') }} - {{ group_remarks_list[0].content[:30] }}{{ '...' if group_remarks_list[0].content|length > 30 }}
+                                                        {% else %}
+                                                        <span class="text-muted">No remarks</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <div class="btn-group" role="group">
+                                                            <a href="{{ url_for('complete_project_details', group_id=group.id) }}" class="btn btn-sm btn-outline-success">
+                                                                <i class="bi bi-pencil-square"></i> Complete
+                                                            </a>
+                                                            <form action="{{ url_for('supervisor_delete_project', project_id=group.id) }}" method="post" onsubmit="return confirm('Delete this group and all its data?');">
+                                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                                {% else %}
+                                                <tr>
+                                                    <td colspan="7" class="text-center text-muted py-4">
+                                                        No department groups found yet. Use the Create Group button to add a new group.
+                                                    </td>
+                                                </tr>
+                                                {% endif %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Evaluation History Section -->
+                <div id="evaluation-history" class="content-section">
+                    <h2 class="mb-4">Evaluation History</h2>
+                    <p class="text-muted mb-4">Access your history of project evaluations, feedback, and project status
+                        updates.</p>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Past Evaluations</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Group ID</th>
+                                                    <th>Project Title</th>
+                                                    <th>Status</th>
+                                                    <th>Feedback</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% set evaluated = [] %}
+                                                {% for gid, ps in all_project_statuses.items() if ps.status != 'Pending' %}
+                                                    {% set eg = groups|selectattr('id', 'eq', gid)|first %}
+                                                    {% if eg %}
+                                                <tr>
+                                                    <td><strong>{{ eg.group_id }}</strong></td>
+                                                    <td>{{ eg.project_title or 'Untitled' }}</td>
+                                                    <td>
+                                                        <span class="badge {% if ps.status == 'Accepted' %}bg-success{% elif ps.status == 'Conditionally Accepted' %}bg-warning text-dark{% elif ps.status == 'Deferred' %}bg-danger{% else %}bg-secondary{% endif %}">{{ ps.status }}</span>
+                                                    </td>
+                                                    <td>{{ ps.comments[:50] if ps.comments else 'No feedback' }}{{ '...' if ps.comments and ps.comments|length > 50 }}</td>
+                                                </tr>
+                                                    {% endif %}
+                                                {% endfor %}
+                                                {% if all_project_statuses.values()|selectattr('status', 'ne', 'Pending')|list|length == 0 %}
+                                                <tr>
+                                                    <td colspan="4" class="text-center text-muted py-4">No evaluations completed yet.</td>
+                                                </tr>
+                                                {% endif %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Students Section -->
+                <div id="students" class="content-section">
+                    <h2 class="mb-4">Student Management</h2>
+
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <span class="badge bg-primary fs-6 me-2">{{ students|length }}</span>
+                            <span class="text-muted">Total Students</span>
+                        </div>
+                        <div class="d-flex">
+                            <div class="input-group me-2">
+                                <input id="studentSearchInput" type="text" class="form-control" placeholder="Search students by name, email, group, or project...">
+                                <button class="btn btn-outline-secondary" type="button">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-primary dropdown-toggle" type="button"
+                                    id="studentFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Filter
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="studentFilterDropdown">
+                                    <li><a class="dropdown-item student-filter-item" href="#" data-filter="all">All Students</a></li>
+                                    <li><a class="dropdown-item student-filter-item" href="#" data-filter="grouped">Grouped</a></li>
+                                    <li><a class="dropdown-item student-filter-item" href="#" data-filter="ungrouped">Ungrouped</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover m-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Program</th>
+                                            <th>Semester</th>
+                                            <th>Group</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="studentTableBody">
+                                        {% if students %}
+                                        {% for student in students %}
+                                        <tr data-student-name="{{ (student.first_name + ' ' + student.last_name).lower() }}"
+                                            data-student-email="{{ student.email.lower() }}"
+                                            data-student-program="{{ student.program.lower() if student.program else '' }}"
+                                            data-student-semester="{{ student.semester|string|lower }}"
+                                            data-student-group="{{ student.group_label.lower() }}"
+                                            data-student-project="{{ student.group_project.lower() }}"
+                                            data-grouped="{{ 'grouped' if student.grouped else 'ungrouped' }}">
+                                            <td>{{ student.first_name }} {{ student.last_name }}</td>
+                                            <td>{{ student.email }}</td>
+                                            <td>{{ student.program }}</td>
+                                            <td>{{ student.semester }}</td>
+                                            <td>
+                                                {% if student.grouped %}
+                                                    <div class="student-group-box">
+                                                        <span class="group-label">Group</span>
+                                                        <span class="group-value">{{ student.group_label }}</span>
+                                                    </div>
+                                                {% else %}
+                                                    <div class="student-group-box">
+                                                        <span class="group-label">Group</span>
+                                                        <span class="group-value text-muted">Ungrouped</span>
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary view-student-btn" data-bs-toggle="modal"
+                                                    data-bs-target="#studentDetailsModal"
+                                                    data-student-id="{{ student.id }}"
+                                                    data-student-name="{{ student.first_name }} {{ student.last_name }}"
+                                                    data-student-email="{{ student.email }}"
+                                                    data-student-group="{{ student.group_label }}"
+                                                    data-student-project="{{ student.group_project }}"
+                                                    data-student-rating="N/A">
+                                                    <i class="bi bi-eye"></i> View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="6" class="text-center py-5">
+                                                <p class="text-muted mb-0">No students assigned yet. Students will
+                                                    appear here once they are assigned to groups.</p>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent text-center">
+                            <small class="text-muted"><span id="studentTableCount">{{ students|length }}</span> student(s) total</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Performance Distribution</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-info mb-0" role="alert">
+                                        <i class="bi bi-info-circle"></i> No student data available yet.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card mb-4">
+                                <div class="card-header d-flex justify-content-between">
+                                    <h5 class="mb-0">Student Concerns</h5>
+                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addConcernModal">
+                                        <i class="bi bi-plus"></i> Add Concern
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-info mb-0" role="alert">
+                                        <i class="bi bi-info-circle"></i> No student concerns reported yet.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Evaluations Section -->
+                <div id="evaluations" class="content-section">
+                    <h2 class="mb-4">Project Evaluations</h2>
+
+                    <!-- Evaluation Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card dashboard-card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-people text-primary" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2">{{ groups|length }}</h3>
+                                    <p class="text-muted mb-0">Supervised Groups</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card dashboard-card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-hourglass-split text-warning" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2">{{ pending_evaluations_count }}</h3>
+                                    <p class="text-muted mb-0">Pending Evaluations</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card dashboard-card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                                    {% set completed_evals = all_project_statuses.values()|selectattr('status', 'ne', 'Pending')|list|length %}
+                                    <h3 class="mt-2">{{ completed_evals }}</h3>
+                                    <p class="text-muted mb-0">Completed Evaluations</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card dashboard-card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-flag text-info" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2">{{ all_assigned_works|length }}</h3>
+                                    <p class="text-muted mb-0">Assigned Tasks</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Group Progress Overview -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Group Progress Overview</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if groups %}
+                            {% for group in groups %}
+                            {% set pd = all_project_details.get(group.id) %}
+                            {% set ps = all_project_statuses.get(group.id) %}
+                            {% set group_works = all_assigned_works|selectattr('group_id', 'eq', group.id)|list %}
+                            {% set completed_works = group_works|selectattr('status', 'eq', 'Completed')|list|length %}
+                            {% set progress = pd.progress if pd and pd.progress else (((completed_works / group_works|length) * 100)|int if group_works|length > 0 else 0) %}
+                            <div class="mb-4 p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <h6 class="mb-0">{{ group.group_id }} - {{ group.project_title or 'Untitled Project' }}</h6>
+                                        <small class="text-muted">
+                                            {% if ps %}
+                                            Status: <span class="badge 
+                                                {% if ps.status == 'Accepted' %}bg-success
+                                                {% elif ps.status == 'Conditionally Accepted' %}bg-warning text-dark
+                                                {% elif ps.status == 'Deferred' %}bg-danger
+                                                {% else %}bg-secondary{% endif %}">{{ ps.status }}</span>
+                                            {% else %}
+                                            Status: <span class="badge bg-secondary">Not Evaluated</span>
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-primary">{{ progress }}%</span>
+                                </div>
+                                <div class="progress" style="height: 10px;">
+                                    <div class="progress-bar {% if progress >= 75 %}bg-success{% elif progress >= 50 %}bg-info{% elif progress >= 25 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                         role="progressbar" style="width: {{ progress }}%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <small class="text-muted">{{ completed_works }}/{{ group_works|length }} tasks completed</small>
+                                    <small class="text-muted">
+                                        {% set group_vivas = all_vivas|selectattr('group_id', 'eq', group.id)|list %}
+                                        {% if group_vivas %}
+                                        Next viva: {{ group_vivas[0].scheduled_date.strftime('%b %d, %Y') if group_vivas[0].scheduled_date else 'TBD' }}
+                                        {% else %}
+                                        No viva scheduled
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% else %}
+                            <div class="alert alert-info mb-0">
+                                <i class="bi bi-info-circle me-2"></i>No supervised groups found.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Assigned Tasks Table -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>All Assigned Tasks</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if all_assigned_works %}
+                            <div class="table-responsive">
+                                <table class="table table-hover m-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Group</th>
+                                            <th>Task</th>
+                                            <th>Type</th>
+                                            <th>Due Date</th>
+                                            <th>Priority</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for work in all_assigned_works %}
+                                        {% set w_group = groups|selectattr('id', 'eq', work.group_id)|first %}
+                                        <tr>
+                                            <td>{{ w_group.group_id if w_group else 'Unknown' }}</td>
+                                            <td>{{ work.title }}</td>
+                                            <td><span class="badge bg-light text-dark">{{ work.work_type }}</span></td>
+                                            <td>{{ work.due_date.strftime('%b %d, %Y') if work.due_date else 'N/A' }}</td>
+                                            <td>
+                                                <span class="badge 
+                                                    {% if work.priority == 'Urgent' %}bg-danger
+                                                    {% elif work.priority == 'High' %}bg-warning text-dark
+                                                    {% elif work.priority == 'Medium' %}bg-primary
+                                                    {% else %}bg-secondary{% endif %}">
+                                                    {{ work.priority }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge 
+                                                    {% if work.status == 'Completed' %}bg-success
+                                                    {% elif work.status == 'In Progress' %}bg-primary
+                                                    {% elif work.status == 'Submitted' %}bg-info
+                                                    {% elif work.status == 'Needs Revision' %}bg-warning text-dark
+                                                    {% elif work.status == 'Overdue' %}bg-danger
+                                                    {% else %}bg-secondary{% endif %}">
+                                                    {{ work.status }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="p-4">
+                                <div class="alert alert-info mb-0">
+                                    <i class="bi bi-info-circle me-2"></i>No tasks have been assigned yet.
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Viva Schedule -->
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Viva Schedule</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if all_vivas %}
+                            <div class="table-responsive">
+                                <table class="table table-hover m-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Group</th>
+                                            <th>Date</th>
+                                            <th>Time</th>
+                                            <th>Venue</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for viva in all_vivas %}
+                                        {% set v_group = groups|selectattr('id', 'eq', viva.group_id)|first %}
+                                        <tr>
+                                            <td>{{ v_group.group_id if v_group else 'Unknown' }}</td>
+                                            <td>{{ viva.scheduled_date.strftime('%b %d, %Y') if viva.scheduled_date else 'TBD' }}</td>
+                                            <td>{{ viva.scheduled_time if viva.scheduled_time else 'TBD' }}</td>
+                                            <td>{{ viva.venue if viva.venue else 'TBD' }}</td>
+                                            <td>
+                                                <span class="badge {% if viva.status == 'Completed' %}bg-success{% elif viva.status == 'Scheduled' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                                    {{ viva.status if viva.status else 'Pending' }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="p-4">
+                                <div class="alert alert-info mb-0">
+                                    <i class="bi bi-info-circle me-2"></i>No viva sessions scheduled yet.
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schedule Section (live view) -->
+                <div id="schedule" class="content-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h2 class="mb-0">FYP Schedule & Deadlines</h2>
+                            <p class="text-muted small mb-0">Live FYP schedule overview for {{ coordinator_department }}.</p>
+                        </div>
+                        <div class="text-muted small">
+                            Read-only schedule summary for coordinator review.
+                        </div>
+                    </div>
+
+                    {% set viva_ids = [] %}
+                    {% for v in all_vivas %}
+                        {% if v.group_id not in viva_ids %}
+                            {% set _ = viva_ids.append(v.group_id) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% set groups_no_viva = (groups|length if groups is defined else supervised_groups|length) - (viva_ids|length) %}
+                    {% set upcoming_tasks = all_assigned_works|rejectattr('status', 'equalto', 'Completed')|rejectattr('due_date', 'equalto', none)|list %}
+
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card rounded shadow-sm text-center p-3 h-100">
+                                <i class="bi bi-calendar3 text-primary" style="font-size:1.75rem;"></i>
+                                <h4 class="mt-2">{{ today_schedules|length }}</h4>
+                                <p class="mb-0 text-muted">Deadlines Today</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card rounded shadow-sm text-center p-3 h-100">
+                                <i class="bi bi-calendar-event text-success" style="font-size:1.75rem;"></i>
+                                <h4 class="mt-2">{{ tomorrow_schedules|length }}</h4>
+                                <p class="mb-0 text-muted">Deadlines Tomorrow</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card rounded shadow-sm text-center p-3 h-100">
+                                <i class="bi bi-mic-fill text-warning" style="font-size:1.75rem;"></i>
+                                <h4 class="mt-2">{{ upcoming_vivas|length }}</h4>
+                                <p class="mb-0 text-muted">Upcoming Viva Sessions</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card rounded shadow-sm text-center p-3 h-100">
+                                <i class="bi bi-exclamation-triangle text-danger" style="font-size:1.75rem;"></i>
+                                <h4 class="mt-2">{{ overdue_tasks_count }}</h4>
+                                <p class="mb-0 text-muted">Overdue Tasks</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-7">
+                            <div class="card mb-4">
+                                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="bi bi-calendar-day me-2"></i>Deadlines Today</h5>
+                                    <span class="badge bg-primary">{{ today_schedules|length }} items</span>
+                                </div>
+                                <div class="card-body p-0">
+                                    {% if today_schedules %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover m-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Group</th>
+                                                    <th>Task</th>
+                                                    <th>Due Date</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for work in today_schedules %}
+                                                <tr>
+                                                    <td>{{ work.group.group_id if work.group else 'N/A' }}</td>
+                                                    <td>{{ work.title }}</td>
+                                                    <td>{{ work.due_date.strftime('%b %d, %Y') if work.due_date else 'TBD' }}</td>
+                                                    <td>
+                                                        <span class="badge {% if work.status == 'Completed' %}bg-success{% elif work.is_overdue %}bg-danger{% elif work.status == 'Pending' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                                            {{ work.status }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <div class="p-4 text-muted">No deadlines scheduled for today.</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="card mb-4">
+                                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="bi bi-calendar2-week me-2"></i>Deadlines Tomorrow</h5>
+                                    <span class="badge bg-success">{{ tomorrow_schedules|length }} items</span>
+                                </div>
+                                <div class="card-body p-0">
+                                    {% if tomorrow_schedules %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover m-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Group</th>
+                                                    <th>Task</th>
+                                                    <th>Due Date</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for work in tomorrow_schedules %}
+                                                <tr>
+                                                    <td>{{ work.group.group_id if work.group else 'N/A' }}</td>
+                                                    <td>{{ work.title }}</td>
+                                                    <td>{{ work.due_date.strftime('%b %d, %Y') if work.due_date else 'TBD' }}</td>
+                                                    <td>
+                                                        <span class="badge {% if work.status == 'Completed' %}bg-success{% elif work.is_overdue %}bg-danger{% elif work.status == 'Pending' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                                            {{ work.status }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <div class="p-4 text-muted">No deadlines scheduled for tomorrow.</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="card mb-4">
+                                <div class="card-header bg-white">
+                                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Upcoming Tasks</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if upcoming_tasks %}
+                                    <ul class="list-unstyled mb-0">
+                                        {% for ev in upcoming_tasks[:6] %}
+                                        {% set g = groups|selectattr('id','eq',ev.group_id)|first %}
+                                        <li class="mb-3">
+                                            <strong>{{ ev.title }}</strong>
+                                            <div class="small text-muted">Group: {{ g.group_id if g else 'N/A' }} &middot; Due: {{ ev.due_date.strftime('%b %d, %Y') if ev.due_date else 'TBD' }}</div>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% else %}
+                                    <div class="text-muted">No upcoming tasks.</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-5">
+                            <div class="card mb-4">
+                                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="bi bi-mic-fill me-2"></i>Viva Sessions</h5>
+                                    <span class="badge bg-primary">{{ all_vivas|length }} total</span>
+                                </div>
+                                <div class="card-body p-0">
+                                    {% if all_vivas %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover m-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Group</th>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Room</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for viva in all_vivas[:10] %}
+                                                {% set vg = groups|selectattr('id','eq',viva.group_id)|first %}
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ vg.group_id if vg else 'N/A' }}</strong><br>
+                                                        <small class="text-muted">{{ vg.project_title if vg else 'N/A' }}</small>
+                                                    </td>
+                                                    <td>{{ viva.scheduled_date.strftime('%b %d, %Y') if viva.scheduled_date else 'TBD' }}</td>
+                                                    <td>{{ viva.scheduled_time if viva.scheduled_time else 'TBD' }}</td>
+                                                    <td>{{ viva.venue if viva.venue else 'TBD' }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <div class="p-4 text-muted">No viva sessions scheduled yet.</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="card mb-4">
+                                <div class="card-header bg-white">
+                                    <h5 class="mb-0"><i class="bi bi-bell-fill me-2"></i>Live Alerts</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="list-group">
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong class="text-danger">{{ groups_no_viva }} groups do not have viva scheduled.</strong>
+                                                <div class="small text-muted">Plan viva sessions when ready.</div>
+                                            </div>
+                                            <a href="#dashboard" class="btn btn-sm btn-outline-primary section-link" data-section="dashboard">Dashboard</a>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong class="text-warning">{{ overdue_tasks_count }} overdue tasks</strong>
+                                                <div class="small text-muted">Needs follow-up.</div>
+                                            </div>
+                                            <a href="#assigned-groups" class="btn btn-sm btn-outline-primary section-link" data-section="assigned-groups">View Groups</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submissions Section -->
+                <div id="submissions" class="content-section">
+                    <h2 class="mb-4">Submission Overview</h2>
+                    <p class="text-muted">Monitor the submission status of all groups in your department.</p>
+
+                    <!-- Summary -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card dashboard-card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-people-fill text-primary" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2">{{ supervised_groups|length if supervised_groups is defined else (groups|length if groups is defined else all_submissions|length) }}</h3>
+                                    <p class="text-muted mb-0">Total Groups</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card dashboard-card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-cloud-check text-success" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2">{{ all_submissions|length }}</h3>
+                                    <p class="text-muted mb-0">Submitted Groups</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card dashboard-card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-hourglass text-warning" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2">{{ pending_groups|length if pending_groups is defined else 0 }}</h3>
+                                    <p class="text-muted mb-0">Pending Groups</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card dashboard-card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-exclamation-triangle text-danger" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2">{{ late_submissions|length if late_submissions is defined else 0 }}</h3>
+                                    <p class="text-muted mb-0">Late Submissions</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submissions Table -->
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-folder2-open me-2"></i>All Submissions</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if all_submissions %}
+                            <div class="table-responsive">
+                                <table class="table table-hover m-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Student</th>
+                                            <th>Group</th>
+                                            <th>Title</th>
+                                            <th>Type</th>
+                                            <th>File</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for sub in all_submissions %}
+                                        <tr>
+                                            <td>{{ sub.student.first_name }} {{ sub.student.last_name }}</td>
+                                            <td>{{ sub.group.group_id if sub.group else 'N/A' }}</td>
+                                            <td>
+                                                <strong>{{ sub.title }}</strong>
+                                                {% if sub.description %}
+                                                <br><small class="text-muted">{{ sub.description[:50] }}{{ '...' if sub.description|length > 50 else '' }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td><span class="badge bg-info">{{ sub.submission_type }}</span></td>
+                                            <td>
+                                                <i class="bi {% if sub.file_type == 'pdf' %}bi-file-earmark-pdf text-danger{% elif sub.file_type in ['doc', 'docx'] %}bi-file-earmark-word text-primary{% elif sub.file_type in ['ppt', 'pptx'] %}bi-file-earmark-ppt text-warning{% elif sub.file_type in ['zip', 'rar'] %}bi-file-earmark-zip text-secondary{% else %}bi-file-earmark text-muted{% endif %} me-1"></i>
+                                                {{ sub.original_filename }}<br>
+                                                <small class="text-muted">{{ sub.file_size_display }}</small>
+                                            </td>
+                                            <td>{{ sub.created_at.strftime('%b %d, %Y') }}</td>
+                                            <td>
+                                                <span class="badge {% if sub.status == 'Approved' %}bg-success{% elif sub.status == 'Reviewed' %}bg-info{% elif sub.status == 'Rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                                    {{ sub.status }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a href="{{ url_for('download_submission', submission_id=sub.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Download">
+                                                    <i class="bi bi-download"></i>
+                                                </a>
+                                                <button class="btn btn-sm btn-outline-secondary view-submission-btn"
+                                                    data-bs-toggle="modal" data-bs-target="#viewSubmissionModal"
+                                                    data-id="{{ sub.id }}" data-title="{{ sub.title }}" data-student="{{ sub.student.first_name }} {{ sub.student.last_name }}"
+                                                    data-group="{{ sub.group.group_id if sub.group else 'N/A' }}" data-type="{{ sub.submission_type }}" data-date="{{ sub.created_at.strftime('%b %d, %Y') }}"
+                                                    data-status="{{ sub.status }}" data-fileurl="{{ url_for('download_submission', submission_id=sub.id) }}"
+                                                    data-desc="{{ sub.description|e }}"
+                                                    title="View Details">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-cloud-arrow-up" style="font-size: 3rem;"></i>
+                                <p class="mt-3">No submissions received yet.</p>
+                                <p class="small">Student submissions will appear here once they upload their work.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View Submission Modal (read-only) -->
+                <div class="modal fade" id="viewSubmissionModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="bi bi-eye me-2"></i>Submission Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p><strong>Title:</strong> <span id="viewSubTitle"></span></p>
+                                <p><strong>Student:</strong> <span id="viewSubStudent"></span></p>
+                                <p><strong>Group:</strong> <span id="viewSubGroup"></span></p>
+                                <p><strong>Type:</strong> <span id="viewSubType"></span></p>
+                                <p><strong>Date:</strong> <span id="viewSubDate"></span></p>
+                                <p><strong>Status:</strong> <span id="viewSubStatus"></span></p>
+                                <hr>
+                                <p><strong>Description:</strong></p>
+                                <p id="viewSubDesc" class="text-muted small"></p>
+                            </div>
+                            <div class="modal-footer">
+                                <a id="viewSubDownload" href="#" class="btn btn-outline-primary me-auto" target="_blank"><i class="bi bi-download me-1"></i>Download File</a>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports Section -->
+                <div id="reports" class="content-section">
+                    {% set total_groups = groups|length if groups is defined else 0 %}
+                    {% set submitted_group_ids = [] %}
+                    {% for sub in all_submissions %}
+                        {% if sub.group_id not in submitted_group_ids %}
+                            {% set _ = submitted_group_ids.append(sub.group_id) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% set submitted_groups_count = submitted_group_ids|length %}
+                    {% set pending_groups_count = total_groups - submitted_groups_count if total_groups >= submitted_groups_count else 0 %}
+                    {% set viva_group_ids = [] %}
+                    {% for viva in all_vivas %}
+                        {% if viva.group_id not in viva_group_ids %}
+                            {% set _ = viva_group_ids.append(viva.group_id) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% set viva_scheduled_count = viva_group_ids|length %}
+                    {% set unscheduled_vivas_count = 0 %}
+                    {% set missing_supervisor_count = 0 %}
+                    {% for group in groups %}
+                        {% if group.id not in viva_group_ids %}
+                            {% set unscheduled_vivas_count = unscheduled_vivas_count + 1 %}
+                        {% endif %}
+                        {% if not group.supervisor %}
+                            {% set missing_supervisor_count = missing_supervisor_count + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    {% set late_count = all_assigned_works|selectattr('is_overdue')|list|length if all_assigned_works is defined else 0 %}
+                    {% set completed_pct = ((submitted_groups_count / total_groups) * 100) if total_groups else 0 %}
+                    {% set pending_pct = ((pending_groups_count / total_groups) * 100) if total_groups else 0 %}
+                    {% set late_pct = ((late_count / total_groups) * 100) if total_groups else 0 %}
+                    <div class="reports-hero p-4 p-lg-5 mb-4">
+                        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
+                            <div>
+                                <div class="text-uppercase small fw-semibold opacity-75 mb-2">Reports & Analytics</div>
+                                <h2 class="mb-2">Reports & Analytics</h2>
+                                <p class="mb-0 opacity-75">Overview of FYP progress, submissions, and viva status across all groups.</p>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-light btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#reportFilterModal">
+                                    <i class="bi bi-funnel me-1"></i>Filter
+                                </button>
+                                <a href="#" class="btn btn-outline-light btn-sm rounded-pill px-3"><i class="bi bi-download me-1"></i>Export Report</a>
+                                <a href="#" class="btn btn-light btn-sm rounded-pill px-3"><i class="bi bi-calendar3 me-1"></i>Calendar View</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="reports-mini-card p-3 h-100">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width:56px;height:56px;">
+                                        <i class="bi bi-people-fill fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <div class="small text-muted">Total Groups</div>
+                                        <div class="fs-3 fw-semibold">{{ total_groups }}</div>
+                                        <div class="small text-muted">All registered groups</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="reports-mini-card p-3 h-100">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width:56px;height:56px;">
+                                        <i class="bi bi-check-circle-fill fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <div class="small text-muted">Submissions Completed</div>
+                                        <div class="fs-3 fw-semibold">{{ submitted_groups_count }}</div>
+                                        <div class="small text-muted">{{ (completed_pct|round(0)|int) if total_groups else 0 }}% of total groups</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="reports-mini-card p-3 h-100">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center" style="width:56px;height:56px;">
+                                        <i class="bi bi-clock-fill fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <div class="small text-muted">Pending Submissions</div>
+                                        <div class="fs-3 fw-semibold">{{ pending_groups_count }}</div>
+                                        <div class="small text-muted">{{ (pending_pct|round(0)|int) if total_groups else 0 }}% of total groups</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="reports-mini-card p-3 h-100">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-circle bg-purple bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width:56px;height:56px;background:rgba(99,102,241,.12);">
+                                        <i class="bi bi-mortarboard-fill fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <div class="small text-muted">Viva Scheduled</div>
+                                        <div class="fs-3 fw-semibold">{{ viva_scheduled_count }}</div>
+                                        <div class="small text-muted">{{ ((viva_scheduled_count / total_groups) * 100)|round(0)|int if total_groups else 0 }}% of total groups</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-4 mb-4">
+                        <div class="col-xl-8">
+                            <div class="reports-panel p-0 overflow-hidden">
+                                <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 border-0 py-3 px-3 px-lg-4">
+                                    <div>
+                                        <h5 class="mb-1"><i class="bi bi-table me-2 text-primary"></i>Group Progress Report</h5>
+                                        <div class="text-muted small">Monitor each group's submission and viva readiness.</div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#reportFilterModal"><i class="bi bi-funnel me-1"></i>Filter</button>
+                                        <a href="#" class="btn btn-primary btn-sm"><i class="bi bi-download me-1"></i>Export Report</a>
+                                    </div>
+                                </div>
+                                <div class="px-3 px-lg-4 pb-3">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-5">
+                                            <input id="reportSearchInput" type="search" class="form-control form-control-sm" placeholder="Search group ID or project title">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <select id="reportSupervisorFilter" class="form-select form-select-sm">
+                                                <option>All Supervisors</option>
+                                                {% for group in groups %}
+                                                    {% if group.supervisor %}
+                                                        <option>{{ group.supervisor.first_name }} {{ group.supervisor.last_name }}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <select id="reportStatusFilter" class="form-select form-select-sm">
+                                                <option>All Status</option>
+                                                <option>Complete</option>
+                                                <option>Pending</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <select id="reportVivaFilter" class="form-select form-select-sm">
+                                                <option>All Viva</option>
+                                                <option>Scheduled</option>
+                                                <option>Not Scheduled</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-responsive border-top">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Group ID</th>
+                                                <th>Project Title</th>
+                                                <th>Supervisor</th>
+                                                <th>Submission Status</th>
+                                                <th>Progress</th>
+                                                <th>Viva Status</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="reportTableBody">
+                                            {% for group in groups %}
+                                            {% set pd = all_project_details.get(group.id) %}
+                                            {% set group_submissions = all_submissions|selectattr('group_id', 'eq', group.id)|list %}
+                                            {% set group_has_submission = group.id in submitted_group_ids %}
+                                            {% set group_viva = all_vivas|selectattr('group_id', 'eq', group.id)|list|first %}
+                                            {% set group_works = all_assigned_works|selectattr('group_id', 'eq', group.id)|list %}
+                                            {% set completed_works = group_works|selectattr('status', 'eq', 'Completed')|list|length %}
+                                            {% set progress = pd.progress if pd and pd.progress is not none else (100 if group_has_submission else 0) %}
+                                            <tr>
+                                                <td><strong class="report-group-id">{{ group.group_id }}</strong></td>
+                                                <td>
+                                                    <div class="fw-semibold report-project-title">{{ group.project_title or 'Untitled Project' }}</div>
+                                                    <div class="small text-muted">{{ group_works|length }} tasks tracked</div>
+                                                </td>
+                                                <td class="report-supervisor">{{ group.supervisor.first_name if group.supervisor else 'N/A' }} {{ group.supervisor.last_name if group.supervisor else '' }}</td>
+                                                <td>
+                                                    {% if group_has_submission %}
+                                                    <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle report-submission-status">Complete</span>
+                                                    {% else %}
+                                                    <span class="badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle report-submission-status">Pending</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td style="min-width:180px;">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <div class="progress flex-grow-1" style="height:8px;">
+                                                            <div class="progress-bar {% if progress >= 75 %}bg-success{% elif progress >= 50 %}bg-info{% elif progress >= 25 %}bg-warning{% else %}bg-danger{% endif %}" style="width: {{ progress }}%"></div>
+                                                        </div>
+                                                        <span class="small fw-semibold">{{ progress }}%</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    {% if group_viva %}
+                                                        <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle report-viva-status">Scheduled</span>
+                                                    {% else %}
+                                                        <span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle report-viva-status">Not Scheduled</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex flex-wrap gap-2">
+                                                        <button class="btn btn-outline-primary btn-sm view-report-group-btn"
+                                                            data-bs-toggle="modal" data-bs-target="#reportGroupModal"
+                                                            data-group-id="{{ group.group_id }}"
+                                                            data-project-title="{{ group.project_title or 'Untitled Project' }}"
+                                                            data-supervisor="{{ group.supervisor.first_name if group.supervisor else 'N/A' }} {{ group.supervisor.last_name if group.supervisor else '' }}"
+                                                            data-submission-status="{{ 'Complete' if group_has_submission else 'Pending' }}"
+                                                            data-progress="{{ progress }}"
+                                                            data-viva-status="{{ 'Scheduled' if group_viva else 'Not Scheduled' }}"
+                                                            data-members="{{ group_works|length }}">
+                                                            <i class="bi bi-eye me-1"></i>View Details
+                                                        </button>
+                                                        {% if not group_viva %}
+                                                        <button class="btn btn-outline-success btn-sm schedule-viva-btn" data-bs-toggle="modal" data-bs-target="#scheduleVivaModal" data-group-id="{{ group.id }}">
+                                                            <i class="bi bi-calendar-plus me-1"></i>Schedule Viva
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center px-3 px-lg-4 py-3 border-top">
+                                    <div class="text-muted small">Showing 1 to {{ groups|length if groups else 0 }} of {{ total_groups }} groups</div>
+                                    <nav aria-label="Group report pagination">
+                                        <ul class="pagination pagination-sm mb-0">
+                                            <li class="page-item active"><span class="page-link">1</span></li>
+                                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                            <li class="page-item"><a class="page-link" href="#">4</a></li>
+                                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-4">
+                            <div class="reports-panel p-3 mb-4">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h5 class="mb-1">Submission Analytics</h5>
+                                        <div class="text-muted small">Current breakdown across all groups</div>
+                                    </div>
+                                </div>
+                                <div class="analytics-donut mb-3" style="background: conic-gradient(#16a34a 0 {{ completed_pct }}%, #f59e0b {{ completed_pct }}% {{ completed_pct + pending_pct }}%, #ef4444 {{ completed_pct + pending_pct }}% 100%);">
+                                    <span>
+                                        <div class="fs-3">{{ submitted_groups_count }}</div>
+                                        <div class="small text-muted">Completed</div>
+                                    </span>
+                                </div>
+                                <div class="d-flex flex-column gap-2 mb-3">
+                                    <div class="d-flex justify-content-between small"><span><i class="bi bi-square-fill text-success me-1"></i>Completed</span><span>{{ submitted_groups_count }} ({{ completed_pct|round(0)|int }}%)</span></div>
+                                    <div class="d-flex justify-content-between small"><span><i class="bi bi-square-fill text-warning me-1"></i>Pending</span><span>{{ pending_groups_count }} ({{ pending_pct|round(0)|int }}%)</span></div>
+                                    <div class="d-flex justify-content-between small"><span><i class="bi bi-square-fill text-danger me-1"></i>Missing / Late</span><span>{{ late_count }} ({{ late_pct|round(0)|int }}%)</span></div>
+                                </div>
+                                <div class="border-top pt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 small text-muted">
+                                        <span>Completed vs Pending</span><span>{{ submitted_groups_count }} / {{ pending_groups_count }}</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="d-flex justify-content-between small mb-1"><span>Completed</span><span>{{ submitted_groups_count }}</span></div>
+                                        <div class="progress" style="height: 12px;"><div class="progress-bar bg-success" style="width: {{ completed_pct }}%"></div></div>
+                                    </div>
+                                    <div>
+                                        <div class="d-flex justify-content-between small mb-1"><span>Pending</span><span>{{ pending_groups_count }}</span></div>
+                                        <div class="progress" style="height: 12px;"><div class="progress-bar bg-warning" style="width: {{ pending_pct }}%"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-4 mb-3">
+                        <div class="col-lg-6">
+                            <div class="reports-panel p-3 h-100">
+                                <h5 class="mb-3">Viva Status Report</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Group</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for group in groups[:6] %}
+                                            {% set group_viva = all_vivas|selectattr('group_id', 'eq', group.id)|list|first %}
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-semibold">{{ group.group_id }}</div>
+                                                    <div class="small text-muted">{{ group.project_title or 'Untitled' }}</div>
+                                                </td>
+                                                <td>
+                                                    {% if group_viva %}
+                                                        <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle">Scheduled</span>
+                                                    {% else %}
+                                                        <span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle">Not Scheduled</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="reports-panel p-3 h-100">
+                                <h5 class="mb-3">System Alerts</h5>
+                                <div class="d-grid gap-2">
+                                    <div class="report-alert-card p-3 bg-light-danger">
+                                        <div class="d-flex justify-content-between align-items-center gap-3">
+                                            <div><i class="bi bi-exclamation-triangle text-danger me-2"></i>{{ late_count }} groups missed the SRS submission deadline.</div>
+                                            <a href="#" class="btn btn-outline-danger btn-sm">View Groups</a>
+                                        </div>
+                                    </div>
+                                    <div class="report-alert-card p-3">
+                                        <div class="d-flex justify-content-between align-items-center gap-3">
+                                            <div><i class="bi bi-calendar-x text-warning me-2"></i>{{ unscheduled_vivas_count }} groups have no viva scheduled yet.</div>
+                                            <a href="#" class="btn btn-outline-warning btn-sm">View Groups</a>
+                                        </div>
+                                    </div>
+                                    <div class="report-alert-card p-3">
+                                        <div class="d-flex justify-content-between align-items-center gap-3">
+                                            <div><i class="bi bi-person-exclamation text-primary me-2"></i>{{ missing_supervisor_count }} groups are missing supervisor assignment.</div>
+                                            <a href="#" class="btn btn-outline-primary btn-sm">View Groups</a>
+                                        </div>
+                                    </div>
+                                    <div class="report-alert-card p-3 bg-light">
+                                        <div class="d-flex justify-content-between align-items-center gap-3">
+                                            <div><i class="bi bi-clock text-info me-2"></i>Deadline approaching in 12 days.</div>
+                                            <a href="#" class="btn btn-outline-primary btn-sm">View Deadlines</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <a href="#" class="text-primary fw-semibold text-decoration-none">View All Alerts <i class="bi bi-arrow-right"></i></a>
+                        <nav aria-label="Report table pagination">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item active"><span class="page-link">1</span></li>
+                                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                <li class="page-item"><a class="page-link" href="#">4</a></li>
+                                <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                            </ul>
+                        </nav>
+                    </div>
+
+                    <div class="modal fade" id="reportFilterModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Filter Groups</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-4"><label class="form-label">Supervisor</label><select class="form-select"><option>All Supervisors</option></select></div>
+                                        <div class="col-md-4"><label class="form-label">Submission Status</label><select class="form-select"><option>All</option><option>Complete</option><option>Pending</option></select></div>
+                                        <div class="col-md-4"><label class="form-label">Viva Status</label><select class="form-select"><option>All</option><option>Scheduled</option><option>Not Scheduled</option></select></div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-primary">Apply Filter</button></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal fade" id="reportGroupModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title"><i class="bi bi-graph-up me-2"></i>Group Details</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p><strong>Group ID:</strong> <span id="reportGroupId"></span></p>
+                                    <p><strong>Project Title:</strong> <span id="reportProjectTitle"></span></p>
+                                    <p><strong>Supervisor:</strong> <span id="reportSupervisor"></span></p>
+                                    <p><strong>Submission Status:</strong> <span id="reportSubmissionStatus"></span></p>
+                                    <p><strong>Progress:</strong> <span id="reportProgress"></span>%</p>
+                                    <p><strong>Viva Status:</strong> <span id="reportVivaStatus"></span></p>
+                                    <p><strong>Members / Tasks:</strong> <span id="reportMembers"></span></p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bootstrap JS Bundle with Popper -->
+                <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+                
+                <!-- SocketIO Library -->
+                <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+                
+                <!-- Real-time Updates Module -->
+                <script src="{{ url_for('static', filename='js/realtime-updates.js') }}"></script>
+                
+                <!-- Initialize Real-time Updates for Coordinator -->
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // Initialize real-time updates for coordinator dashboard
+                        const realtimeUpdates = new RealtimeUpdates({
+                            role: 'cordinator',
+                            userId: {{ current_user.id }},
+                            updateInterval: 5000
+                        });
+
+                        // Handle dashboard updates
+                        realtimeUpdates.on('onDashboardUpdate', function(data) {
+                            console.log('Coordinator dashboard updated:', data);
+                            if (data.groups_count !== undefined) {
+                                const groupsCounter = document.querySelector('[data-stat="groups"]');
+                                if (groupsCounter) groupsCounter.textContent = data.groups_count;
+                            }
+                        });
+
+                        // Listen for notifications
+                        if ('Notification' in window && Notification.permission === 'default') {
+                            Notification.requestPermission();
+                        }
+                    });
+                </script>
+                
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        // Clean up any stuck modals on initial load only
+                        setTimeout(() => {
+                            document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+                                if (document.querySelectorAll('.modal.show').length === 0) {
+                                    backdrop.remove();
+                                }
+                            });
+                        }, 500);
+
+                        const sectionLinks = Array.from(document.querySelectorAll('.section-link'));
+
+                        const setActiveLink = (sectionToShow) => {
+                            sectionLinks.forEach(navLink => {
+                                navLink.classList.toggle('active', navLink.getAttribute('data-section') === sectionToShow);
+                            });
+                        };
+
+                        const showSection = (sectionToShow) => {
+                            const sectionElement = document.getElementById(sectionToShow);
+                            if (!sectionElement) {
+                                return;
+                            }
+                            document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
+                            sectionElement.classList.add('active');
+                            setActiveLink(sectionToShow);
+                            window.location.hash = sectionToShow;
+                        };
+
+                        sectionLinks.forEach(link => {
+                            link.addEventListener('click', function (e) {
+                                e.preventDefault();
+                                const sectionToShow = this.dataset.section;
+                                if (sectionToShow) {
+                                    showSection(sectionToShow);
+                                }
+                            });
+                        });
+
+                        const initialHash = window.location.hash.replace('#', '');
+                        if (initialHash && document.getElementById(initialHash)) {
+                            showSection(initialHash);
+                        }
+
+                        // Initialize reports search/filter behavior
+                        const reportSearch = document.querySelector('#reportSearchInput');
+                        const reportSupervisorFilter = document.querySelector('#reportSupervisorFilter');
+                        const reportStatusFilter = document.querySelector('#reportStatusFilter');
+                        const reportVivaFilter = document.querySelector('#reportVivaFilter');
+                        const reportTableBody = document.querySelector('#reportTableBody');
+
+                        const updateReportTable = () => {
+                            if (!reportTableBody) return;
+                            const searchValue = reportSearch ? reportSearch.value.trim().toLowerCase() : '';
+                            const supervisorValue = reportSupervisorFilter ? reportSupervisorFilter.value : 'All Supervisors';
+                            const statusValue = reportStatusFilter ? reportStatusFilter.value : 'All';
+                            const vivaValue = reportVivaFilter ? reportVivaFilter.value : 'All';
+
+                            reportTableBody.querySelectorAll('tr').forEach(row => {
+                                const groupId = row.querySelector('.report-group-id')?.textContent.trim().toLowerCase() || '';
+                                const title = row.querySelector('.report-project-title')?.textContent.trim().toLowerCase() || '';
+                                const supervisor = row.querySelector('.report-supervisor')?.textContent.trim() || '';
+                                const status = row.querySelector('.report-submission-status')?.textContent.trim() || 'Pending';
+                                const viva = row.querySelector('.report-viva-status')?.textContent.trim() || 'Not Scheduled';
+
+                                const matchesSearch = !searchValue || groupId.includes(searchValue) || title.includes(searchValue);
+                                const matchesSupervisor = !supervisorValue || supervisorValue.startsWith('All') || supervisor === supervisorValue;
+                                const matchesStatus = statusValue.startsWith('All') || status === statusValue;
+                                const matchesViva = vivaValue.startsWith('All') || viva === vivaValue;
+
+                                row.style.display = (matchesSearch && matchesSupervisor && matchesStatus && matchesViva) ? '' : 'none';
+                            });
+                        };
+
+                        if (reportSearch) reportSearch.addEventListener('input', updateReportTable);
+                        if (reportSupervisorFilter) reportSupervisorFilter.addEventListener('change', updateReportTable);
+                        if (reportStatusFilter) reportStatusFilter.addEventListener('change', updateReportTable);
+                        if (reportVivaFilter) reportVivaFilter.addEventListener('change', updateReportTable);
+
+                        // Handle View Project Button Clicks - Using Bootstrap 5 Modal API
+                        document.addEventListener('click', function (e) {
+                            const button = e.target.closest('.view-project-btn');
+                            if (button) {
+                                const groupId = button.dataset.groupNum;
+                                const projectTitle = button.dataset.projectTitle;
+                                const members = button.dataset.members;
+                                document.getElementById('projectDetailsModalLabel').textContent = groupId + ' - ' + projectTitle;
+                                document.getElementById('modalGroupId').textContent = groupId;
+                                document.getElementById('modalProjectTitle').textContent = projectTitle;
+                                document.getElementById('modalMembers').textContent = members;
+                                const modalElement = document.getElementById('projectDetailsModal');
+                                const modal = new bootstrap.Modal(modalElement);
+                                modal.show();
+                            }
+                        });
+
+                        document.querySelectorAll('.view-submission-btn').forEach(function(btn) {
+                            btn.addEventListener('click', function() {
+                                const id = this.dataset.id;
+                                const title = this.dataset.title;
+                                const student = this.dataset.student;
+                                const group = this.dataset.group;
+                                const type = this.dataset.type;
+                                const date = this.dataset.date;
+                                const status = this.dataset.status;
+                                const fileurl = this.dataset.fileurl;
+                                const desc = this.dataset.desc || '';
+                                document.getElementById('viewSubTitle').textContent = title;
+                                document.getElementById('viewSubStudent').textContent = student;
+                                document.getElementById('viewSubGroup').textContent = group;
+                                document.getElementById('viewSubType').textContent = type;
+                                document.getElementById('viewSubDate').textContent = date;
+                                document.getElementById('viewSubStatus').textContent = status;
+                                document.getElementById('viewSubDesc').textContent = desc;
+                                document.getElementById('viewSubDownload').href = fileurl || '#';
+                            });
+                        });
+
+                        document.querySelectorAll('.view-report-group-btn').forEach(function(btn) {
+                            btn.addEventListener('click', function() {
+                                document.getElementById('reportGroupId').textContent = this.dataset.groupId || '';
+                                document.getElementById('reportProjectTitle').textContent = this.dataset.projectTitle || '';
+                                document.getElementById('reportSupervisor').textContent = this.dataset.supervisor || '';
+                                document.getElementById('reportSubmissionStatus').textContent = this.dataset.submissionStatus || '';
+                                document.getElementById('reportProgress').textContent = this.dataset.progress || '0';
+                                document.getElementById('reportVivaStatus').textContent = this.dataset.vivaStatus || '';
+                                document.getElementById('reportMembers').textContent = this.dataset.members || '0';
+                            });
+                        });
+
+                        document.querySelectorAll('.schedule-viva-btn').forEach(function(btn) {
+                            btn.addEventListener('click', function() {
+                                const groupId = this.dataset.groupId;
+                                const groupSelect = document.querySelector('#scheduleVivaModal select[name="group_id"]');
+                                if (groupSelect && groupId) {
+                                    groupSelect.value = groupId;
+                                }
+                            });
+                        });
+                    });
+                </script>
+
+                <!-- Add Modals at the end of the document -->
+
+                <!-- Single Reusable Project Details Modal -->
+                <div class="modal fade" id="projectDetailsModal" tabindex="-1"
+                    aria-labelledby="projectDetailsModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="projectDetailsModalLabel"></h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <h6>Project Information</h6>
+                                    <p><strong>Group ID:</strong> <span id="modalGroupId"></span></p>
+                                    <p><strong>Project Title:</strong> <span id="modalProjectTitle"></span></p>
+                                    <p><strong>Members:</strong> <span id="modalMembers"></span> students</p>
+                                </div>
+                                <div class="mb-3">
+                                    <h6>Status</h6>
+                                    <p><span class="badge bg-success">On Track</span></p>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Details Modal -->
+                <div class="modal fade" id="studentDetailsModal" tabindex="-1"
+                    aria-labelledby="studentDetailsModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="studentDetailsModalLabel">Student Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <h6>Personal Information</h6>
+                                    <p><strong>Name:</strong> <span id="modalStudentName"></span></p>
+                                    <p><strong>Email:</strong> <span id="modalStudentEmail"></span></p>
+                                </div>
+                                <div class="mb-3">
+                                    <h6>Group Information</h6>
+                                    <p><strong>Group ID:</strong> <span id="modalStudentGroup"></span></p>
+                                    <p><strong>Project:</strong> <span id="modalStudentProject"></span></p>
+                                </div>
+                                <div class="mb-3">
+                                    <h6>Performance</h6>
+                                    <p><strong>Rating:</strong> <span id="modalStudentRating"></span></p>
+                                    <p><strong>Last Update:</strong> <span id="modalStudentLastUpdate"></span></p>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Profile Modal -->
+                <div class="modal fade" id="studentProfileModal" tabindex="-1"
+                    aria-labelledby="studentProfileModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="studentProfileModalLabel">Student Profile</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <h6>Personal Information</h6>
+                                    <p><strong>Name:</strong> <span id="studentName"></span></p>
+                                    <p><strong>Email:</strong> <span id="studentEmail"></span></p>
+                                </div>
+                                <div class="mb-3">
+                                    <h6>Academic Information</h6>
+                                    <p><strong>Program:</strong> <span id="studentProgram"></span></p>
+                                    <p><strong>Semester:</strong> <span id="studentSemester"></span></p>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Supervisor Profile Modal -->
+                <div class="modal fade" id="supervisorProfileModal" tabindex="-1"
+                    aria-labelledby="supervisorProfileModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="supervisorProfileModalLabel">Supervisor Profile</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <h6>Personal Information</h6>
+                                    <p><strong>Name:</strong> <span id="supervisorName"></span></p>
+                                    <p><strong>Email:</strong> <span id="supervisorEmail"></span></p>
+                                </div>
+                                <div class="mb-3">
+                                    <h6>Professional Information</h6>
+                                    <p><strong>Highest Degree:</strong> <span id="supervisorDegree"></span></p>
+                                    <p><strong>Specialization:</strong> <span id="supervisorSpecialization"></span></p>
+                                    <p><strong>Affiliation:</strong> <span id="supervisorAffiliation"></span></p>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Proposal View Modal -->
+                <div class="modal fade" id="proposalModal" tabindex="-1" aria-labelledby="proposalModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="proposalModalLabel">Project Proposal Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <h6 id="proposalTitle"></h6>
+                                <div class="mb-3">
+                                    <strong>Category:</strong> <span id="proposalMajor" class="badge"></span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Submitted by:</strong> <span id="proposalStudent"></span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Submission Date:</strong> <span id="proposalDate"></span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Description:</strong>
+                                    <p id="proposalDescription" class="text-muted"></p>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Status:</strong> <span id="proposalStatus"></span>
+                                </div>
+                                <div id="proposalFeedbackDiv" class="mb-3" style="display:none;">
+                                    <strong>Feedback:</strong>
+                                    <p id="proposalFeedback" class="text-muted"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Approve Proposal Modal -->
+                <div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form method="POST" action="">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="approveModalLabel">Approve Project Proposal</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="alert alert-success">
+                                        <i class="bi bi-check-circle me-2"></i>You are about to approve this project proposal.
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="approveFeedback" class="form-label">Optional Feedback or Comments</label>
+                                        <textarea class="form-control" id="approveFeedback" name="feedback" rows="3" placeholder="Add any comments or feedback..."></textarea>
+                                        <small class="text-muted">Leave empty to send default approval message</small>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="bi bi-check-lg me-1"></i>Approve Proposal
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reject Proposal Modal -->
+                <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form method="POST" action="">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="rejectModalLabel">Reject Project Proposal</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="alert alert-danger">
+                                        <i class="bi bi-exclamation-circle me-2"></i>You are about to reject this project proposal.
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="rejectFeedback" class="form-label">Reason for Rejection *</label>
+                                        <textarea class="form-control" id="rejectFeedback" name="feedback" rows="3" placeholder="Please provide a reason for rejection..." required></textarea>
+                                        <small class="text-muted">This will be sent to the student</small>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="bi bi-x-lg me-1"></i>Reject Proposal
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    // Store proposal ID for modal operations
+                    let currentProposalId = null;
+
+                    // View proposal details
+                    function viewProposal(proposalId) {
+                        // In a real implementation, you would fetch proposal details via AJAX
+                        // For now, this is a placeholder
+                        console.log('Viewing proposal:', proposalId);
+                    }
+
+                    // Prepare approve modal
+                    function prepareApprove(proposalId) {
+                        currentProposalId = proposalId;
+                        const form = document.querySelector('#approveModal form');
+                        form.action = `/proposal/${proposalId}/approve`;
+                    }
+
+                    // Prepare reject modal
+                    function prepareReject(proposalId) {
+                        currentProposalId = proposalId;
+                        const form = document.querySelector('#rejectModal form');
+                        form.action = `/proposal/${proposalId}/reject`;
+                    }
+                </script>
+
+                <script>
+                    // Schedule page interactions
+                    document.addEventListener('DOMContentLoaded', function () {
+                        // Populate Edit Deadline modal when edit buttons clicked
+                        document.querySelectorAll('.btn-edit-deadline').forEach(btn => {
+                            btn.addEventListener('click', function () {
+                                // In a real implementation we'd fetch data for the deadline
+                                document.getElementById('editDeadlineId').value = this.getAttribute('data-id') || '';
+                                document.getElementById('editDeadlineDescription').value = this.closest('tr').children[1].textContent.trim();
+                                // date parsing left as TODO for backend-driven values
+                            });
+                        });
+
+                        // View viva details
+                        document.querySelectorAll('.btn-view-viva').forEach(btn => {
+                            btn.addEventListener('click', function () {
+                                const tr = this.closest('tr');
+                                document.getElementById('vivaGroup').textContent = tr.children[0].textContent.trim();
+                                document.getElementById('vivaProject').textContent = tr.children[1].textContent.trim();
+                                document.getElementById('vivaSupervisor').textContent = tr.children[2].textContent.trim();
+                                document.getElementById('vivaDate').textContent = tr.children[3].textContent.trim();
+                                document.getElementById('vivaTime').textContent = tr.children[4].textContent.trim();
+                                document.getElementById('vivaVenue').textContent = tr.children[5].textContent.trim();
+                            });
+                        });
+                    });
+                </script>
+
+                <!-- JavaScript to populate modal data -->
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        // Add event listeners to student view buttons
+                        document.querySelectorAll('.view-student-btn').forEach(button => {
+                            button.addEventListener('click', function () {
+                                // Get data attributes from the button
+                                const studentName = this.getAttribute('data-student-name');
+                                const studentEmail = this.getAttribute('data-student-email');
+                                const studentGroup = this.getAttribute('data-student-group');
+                                const studentProject = this.getAttribute('data-student-project');
+                                const studentRating = this.getAttribute('data-student-rating');
+
+                                // Populate modal fields
+                                document.getElementById('modalStudentName').textContent = studentName;
+                                document.getElementById('modalStudentEmail').textContent = studentEmail;
+                                document.getElementById('modalStudentGroup').textContent = studentGroup;
+                                document.getElementById('modalStudentProject').textContent = studentProject;
+                                document.getElementById('modalStudentRating').textContent = studentRating;
+                                document.getElementById('modalStudentLastUpdate').textContent = 'Today';
+                            });
+                        });
+
+                        // Student search and grouped/ungrouped filter
+                        const studentSearchInput = document.getElementById('studentSearchInput');
+                        const studentFilterItems = document.querySelectorAll('.student-filter-item');
+                        const studentTableRows = document.querySelectorAll('#studentTableBody tr');
+                        let currentStudentFilter = 'all';
+
+                        function updateStudentTable() {
+                            const query = studentSearchInput ? studentSearchInput.value.trim().toLowerCase() : '';
+                            let visibleCount = 0;
+
+                            studentTableRows.forEach(row => {
+                                const name = row.dataset.studentName || '';
+                                const email = row.dataset.studentEmail || '';
+                                const program = row.dataset.studentProgram || '';
+                                const semester = row.dataset.studentSemester || '';
+                                const group = row.dataset.studentGroup || '';
+                                const project = row.dataset.studentProject || '';
+                                const grouped = row.dataset.grouped || 'ungrouped';
+
+                                const matchesSearch = !query || name.includes(query) || email.includes(query) || program.includes(query) || semester.includes(query) || group.includes(query) || project.includes(query);
+                                const matchesFilter = currentStudentFilter === 'all' || currentStudentFilter === grouped;
+                                const showRow = matchesSearch && matchesFilter;
+
+                                row.style.display = showRow ? '' : 'none';
+                                if (showRow) visibleCount += 1;
+                            });
+
+                            const countLabel = document.getElementById('studentTableCount');
+                            if (countLabel) {
+                                countLabel.textContent = visibleCount;
+                            }
+                        }
+
+                        if (studentSearchInput) {
+                            studentSearchInput.addEventListener('input', updateStudentTable);
+                        }
+
+                        studentFilterItems.forEach(item => {
+                            item.addEventListener('click', function (event) {
+                                event.preventDefault();
+                                currentStudentFilter = this.getAttribute('data-filter') || 'all';
+                                updateStudentTable();
+                            });
+                        });
+
+                        // Add event listeners to student view buttons
+                        document.querySelectorAll('.view-student-profile').forEach(button => {
+                            button.addEventListener('click', function () {
+                                // Get data attributes from the button
+                                const studentName = this.getAttribute('data-name');
+                                const studentEmail = this.getAttribute('data-email');
+                                const studentProgram = this.getAttribute('data-program');
+                                const studentSemester = this.getAttribute('data-semester');
+
+                                // Populate modal fields
+                                document.getElementById('studentName').textContent = studentName;
+                                document.getElementById('studentEmail').textContent = studentEmail;
+                                document.getElementById('studentProgram').textContent = studentProgram;
+                                document.getElementById('studentSemester').textContent = studentSemester;
+
+                                // Show modal
+                                new bootstrap.Modal(document.getElementById('studentProfileModal')).show();
+                            });
+                        });
+
+                        // Add event listeners to supervisor view buttons
+                        document.querySelectorAll('.view-supervisor-profile').forEach(button => {
+                            button.addEventListener('click', function () {
+                                // Get data attributes from the button
+                                const supervisorName = this.getAttribute('data-name');
+                                const supervisorEmail = this.getAttribute('data-email');
+                                const supervisorDegree = this.getAttribute('data-degree');
+                                const supervisorSpecialization = this.getAttribute('data-specialization');
+                                const supervisorAffiliation = this.getAttribute('data-affiliation');
+
+                                // Populate modal fields
+                                document.getElementById('supervisorName').textContent = supervisorName;
+                                document.getElementById('supervisorEmail').textContent = supervisorEmail;
+                                document.getElementById('supervisorDegree').textContent = supervisorDegree;
+                                document.getElementById('supervisorSpecialization').textContent = supervisorSpecialization;
+                                document.getElementById('supervisorAffiliation').textContent = supervisorAffiliation;
+
+                                // Show modal
+                                new bootstrap.Modal(document.getElementById('supervisorProfileModal')).show();
+                            });
+                        });
+                    });
+                </script>
+            </div><!-- /.col-lg-10 main-content -->
+        </div><!-- /.row g-0 -->
+    </div><!-- /.container-fluid -->
+    <div class="modal fade" id="addConcernModal" tabindex="-1" aria-labelledby="addConcernModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addConcernModalLabel"><i class="bi bi-exclamation-circle me-2"></i>Add Student Concern</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="addConcernForm" onsubmit="event.preventDefault(); document.getElementById('addConcernSuccess').classList.remove('d-none');">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="concernStudent" class="form-label">Student Name</label>
+                            <input type="text" class="form-control" id="concernStudent" placeholder="Enter student name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="concernDescription" class="form-label">Concern Description</label>
+                            <textarea class="form-control" id="concernDescription" rows="4" placeholder="Describe the concern" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="concernPriority" class="form-label">Priority</label>
+                            <select class="form-select" id="concernPriority">
+                                <option value="Normal" selected>Normal</option>
+                                <option value="High">High</option>
+                                <option value="Urgent">Urgent</option>
+                            </select>
+                        </div>
+                        <div id="addConcernSuccess" class="alert alert-success d-none" role="alert">
+                            Concern recorded successfully. This is a placeholder action in the dashboard UI.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Concern</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Auto-refresh -->
+    <script src="{{ url_for('static', filename='js/auto-refresh.js') }}"></script>
+</body>
+
+</html>

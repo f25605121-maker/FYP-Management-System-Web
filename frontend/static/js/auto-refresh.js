@@ -95,27 +95,6 @@
                 return;
             }
 
-            // Restore visible section (admin dashboard)
-            if (state.visibleSectionId) {
-                const sections = document.querySelectorAll('.content-section');
-                sections.forEach(function (sec) {
-                    sec.style.display = 'none';
-                });
-                const target = document.getElementById(state.visibleSectionId);
-                if (target) target.style.display = 'block';
-
-                // Also mark the corresponding sidebar link as active
-                const sidebarLinks = document.querySelectorAll('.sidebar .nav-link, .sidebar-nav .nav-link');
-                sidebarLinks.forEach(function (link) {
-                    link.classList.remove('active');
-                    const onclick = link.getAttribute('onclick') || '';
-                    if (onclick.includes("'" + state.visibleSectionId + "'") ||
-                        onclick.includes('"' + state.visibleSectionId + '"')) {
-                        link.classList.add('active');
-                    }
-                });
-            }
-
             // Restore active Bootstrap tabs
             if (state.activeTabs && state.activeTabs.length > 0) {
                 state.activeTabs.forEach(function (tabHref) {

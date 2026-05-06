@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Management - Admin Dashboard</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Modern CSS -->
+    <link href="{{ url_for('static', filename='css/modern-ui.css') }}" rel="stylesheet">
+    <!-- Admin Dark Green Theme -->
+    <link href="{{ url_for('static', filename='css/admin-dark-green.css') }}" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        .account-card {
+            background: var(--admin-dark-card);
+            border: 1px solid var(--admin-dark-border);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--admin-dark-shadow-md);
+        }
+        
+        .role-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .role-student { background: #0ea5e9; color: #ffffff; }
+        .role-cordinator { background: #16a34a; color: #ffffff; }
+        .role-teacher { background: var(--admin-dark-warning); color: #111827; }
+        .role-supervisor { background: var(--admin-dark-success); color: #ffffff; }
+        .role-admin { background: var(--admin-dark-danger); color: #ffffff; }
+        
+        .create-form {
+            background: var(--admin-dark-surface);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--admin-dark-border);
+        }
+        
+        .success-message {
+            background: linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%);
+            border-left: 4px solid var(--admin-dark-success);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: var(--admin-dark-text-primary);
+            margin-bottom: 1rem;
+        }
+        
+        .user-table {
+            background: var(--admin-dark-card);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: var(--admin-dark-shadow-md);
+        }
+        
+        .user-table .table {
+            margin-bottom: 0;
+            color: var(--admin-dark-text-primary);
+        }
+        
+        .user-table .table-striped > tbody > tr:nth-of-type(odd) > td {
+            background: rgba(6, 95, 70, 0.3);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .action-buttons .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body class="admin-dark-theme">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard_admin') }}">
+                <i class="bi bi-shield-fill-check text-success"></i> Admin Dashboard
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i> {{ current_user.first_name }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="bi bi-person"></i> Profile</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid py-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h3 mb-1">
+                            <i class="bi bi-people-fill text-success"></i> Account Management
+                        </h1>
+                        <p class="text-muted">Create and manage user accounts for all roles</p>
+                    </div>
+                    <div class="security-badge">
+                        <i class="bi bi-shield-check"></i> Admin Access
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Message -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    {% if category == 'success' %}
+                        <div class="success-message">
+                            <i class="bi bi-check-circle-fill text-success"></i> {{ message }}
+                        </div>
+                    {% elif category == 'danger' %}
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill"></i> {{ message }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Create Account Section -->
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="account-card">
+                    <h4 class="mb-4">
+                        <i class="bi bi-person-plus-fill text-success"></i> Create New Account
+                    </h4>
+                    
+                    <form method="POST" action="{{ url_for('admin_add_user') }}">
+                        <div class="create-form">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="firstName" class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="firstName" name="firstName" required autocomplete="off">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="lastName" class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="lastName" name="lastName" required autocomplete="off">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="email" name="email" required autocomplete="off">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Role</label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="" selected disabled>Select a role</option>
+                                    <option value="student">Student</option>
+                                    <option value="teacher">Teacher</option>
+                                    <option value="cordinator">Coordinator</option>
+                                    <option value="supervisor">Supervisor</option>
+                                    <option value="admin">Administrator</option>
+                                </select>
+                            </div>
+
+                            <div id="studentFields" class="d-none border rounded p-3 mb-3">
+                                <h5 class="mb-3">Student Details</h5>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="studentDepartment" class="form-label">Department</label>
+                                        <select class="form-select" id="studentDepartment" name="department">
+                                            <option value="" selected disabled>Select department</option>
+                                            <option value="Computer Science (CS)">Computer Science (CS)</option>
+                                            <option value="Information Technology (IT)">Information Technology (IT)</option>
+                                            <option value="Software Engineering (SE)">Software Engineering (SE)</option>
+                                            <option value="Artificial Intelligence (AI)">Artificial Intelligence (AI)</option>
+                                            <option value="Cyber Security (CY)">Cyber Security (CY)</option>
+                                            <option value="Data Science">Data Science</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="studentProgram" class="form-label">Program</label>
+                                        <select class="form-select" id="studentProgram" name="program">
+                                            <option value="" selected disabled>Select program</option>
+                                            <option value="Computer Science (CS)">Computer Science (CS)</option>
+                                            <option value="Information Technology (IT)">Information Technology (IT)</option>
+                                            <option value="Software Engineering (SE)">Software Engineering (SE)</option>
+                                            <option value="Artificial Intelligence (AI)">Artificial Intelligence (AI)</option>
+                                            <option value="Cyber Security (CY)">Cyber Security (CY)</option>
+                                            <option value="Data Science">Data Science</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="studentSemester" class="form-label">Semester</label>
+                                        <input type="number" min="1" max="12" class="form-control" id="studentSemester" name="semester">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="studentSection" class="form-label">Section</label>
+                                        <input type="text" class="form-control" id="studentSection" name="section">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="studentBatch" class="form-label">Batch</label>
+                                        <input type="text" class="form-control" id="studentBatch" name="batch">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="staffFields" class="d-none border rounded p-3 mb-3">
+                                <h5 class="mb-3">Staff Details</h5>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="staffDepartment" class="form-label">Teaching Department</label>
+                                        <select class="form-select" id="staffDepartment" name="department">
+                                            <option value="" selected disabled>Select teaching department</option>
+                                            <option value="Computer Science (CS)">Computer Science (CS)</option>
+                                            <option value="Information Technology (IT)">Information Technology (IT)</option>
+                                            <option value="Software Engineering (SE)">Software Engineering (SE)</option>
+                                            <option value="Artificial Intelligence (AI)">Artificial Intelligence (AI)</option>
+                                            <option value="Cyber Security (CY)">Cyber Security (CY)</option>
+                                            <option value="Data Science">Data Science</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="staffDegree" class="form-label">Highest Degree</label>
+                                        <input type="text" class="form-control" id="staffDegree" name="highest_degree" autocomplete="off">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" name="password" required autocomplete="new-password">
+                                <div class="form-text">
+                                    Minimum 8 characters. For admin accounts, use strong passwords.
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required autocomplete="new-password">
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-person-plus"></i> Create Account
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Statistics -->
+            <div class="col-lg-6">
+                <div class="account-card">
+                    <h4 class="mb-4">
+                        <i class="bi bi-bar-chart-fill text-info"></i> Account Statistics
+                    </h4>
+                    
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="stat-number">{{ users|length if users else 0 }}</div>
+                            <div class="text-muted">Total Users</div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="stat-number text-info">{{ users|selectattr('role', 'equalto', 'student')|list|length if users else 0 }}</div>
+                            <div class="text-muted">Students</div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="stat-number text-warning">{{ users|selectattr('role', 'equalto', 'teacher')|list|length if users else 0 }}</div>
+                            <div class="text-muted">Teachers</div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="stat-number text-success">{{ users|selectattr('role', 'equalto', 'supervisor')|list|length if users else 0 }}</div>
+                            <div class="text-muted">Supervisors</div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-3">
+                    
+                    <div class="text-center">
+                        <div class="stat-number text-danger">{{ users|selectattr('role', 'equalto', 'admin')|list|length if users else 0 }}</div>
+                        <div class="text-muted">Administrators</div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="account-card">
+                    <h4 class="mb-4">
+                        <i class="bi bi-lightning-fill text-warning"></i> Quick Actions
+                    </h4>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="generatePassword()">
+                            <i class="bi bi-key"></i> Generate Strong Password
+                        </button>
+                        <button class="btn btn-outline-info" onclick="exportUsers()">
+                            <i class="bi bi-download"></i> Export User List
+                        </button>
+                        <button class="btn btn-outline-success" onclick="refreshUsers()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh List
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users List -->
+        <div class="row">
+            <div class="col-12">
+                <div class="user-table">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-people"></i> Existing Users
+                        </h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Created</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users[:20] %}
+                                <tr>
+                                    <td>{{ user.id }}</td>
+                                    <td>{{ user.first_name }} {{ user.last_name }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        <span class="role-badge role-{{ user.role }}">
+                                            {{ user.role.title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge bg-success">Active</span>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="editUser({{ user.id }})">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-warning" onclick="resetPassword({{ user.id }})">
+                                                <i class="bi bi-key"></i>
+                                            </button>
+                                            {% if user.role != 'admin' %}
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser({{ user.id }})">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function generatePassword() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+            let password = '';
+            for (let i = 0; i < 12; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('password').value = password;
+            document.getElementById('confirmPassword').value = password;
+        }
+        
+        function exportUsers() {
+            window.location.href = '/admin/export_users';
+        }
+        
+        function refreshUsers() {
+            location.reload();
+        }
+        
+        function editUser(userId) {
+            // Implementation for editing user
+            alert('Edit user functionality coming soon for user ID: ' + userId);
+        }
+        
+        function resetPassword(userId) {
+            if (confirm('Are you sure you want to reset the password for this user?')) {
+                // Implementation for password reset
+                alert('Password reset functionality coming soon for user ID: ' + userId);
+            }
+        }
+        
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                // Implementation for user deletion
+                alert('Delete user functionality coming soon for user ID: ' + userId);
+            }
+        }
+        
+        const addUserRole = document.getElementById('role');
+        const studentFields = document.getElementById('studentFields');
+        const staffFields = document.getElementById('staffFields');
+
+        function setRequired(ids, isRequired) {
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.required = isRequired;
+                }
+            });
+        }
+
+        function toggleSectionInputs(sectionEl, enabled) {
+            if (!sectionEl) return;
+            sectionEl.querySelectorAll('input, select, textarea').forEach(el => {
+                el.disabled = !enabled;
+            });
+        }
+
+        function toggleRoleSections() {
+            const role = addUserRole ? addUserRole.value : '';
+            const isStudent = role === 'student';
+            const isStaff = role === 'supervisor' || role === 'cordinator' || role === 'teacher';
+
+            if (studentFields) studentFields.classList.toggle('d-none', !isStudent);
+            if (staffFields) staffFields.classList.toggle('d-none', !isStaff);
+
+            toggleSectionInputs(studentFields, isStudent);
+            toggleSectionInputs(staffFields, isStaff);
+
+            setRequired(['studentDepartment', 'studentProgram', 'studentSemester', 'studentSection', 'studentBatch'], isStudent);
+            setRequired(['staffDepartment', 'staffDegree'], isStaff);
+        }
+
+        if (addUserRole) {
+            addUserRole.addEventListener('change', toggleRoleSections);
+            toggleRoleSections();
+        }
+
+        // Form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const role = addUserRole ? addUserRole.value : '';
+
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('Passwords do not match!');
+                return;
+            }
+            
+            if (password.length < 8) {
+                e.preventDefault();
+                alert('Password must be at least 8 characters long!');
+                return;
+            }
+            
+            if (role === 'admin' && password.length < 12) {
+                e.preventDefault();
+                alert('Admin passwords must be at least 12 characters long!');
+                return;
+            }
+        });
+    </script>
+</body>
+</html>

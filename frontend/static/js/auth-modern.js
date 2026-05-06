@@ -145,12 +145,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (roleSelect) {
         const sections = {
             student:    document.getElementById('studentFields'),
-            faculty:    document.getElementById('facultyFields'),
+            cordinator:    document.getElementById('cordinatorFields'),
             supervisor: document.getElementById('supervisorFields'),
         };
         const reqMap = {
             student:    ['program', 'semester'],
-            faculty:    ['username'],
+            cordinator:    ['username'],
             supervisor: ['highestDegree', 'specialization'],
         };
 

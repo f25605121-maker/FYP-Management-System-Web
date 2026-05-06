@@ -2,12 +2,15 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_wtf.csrf import CSRFProtect, CSRFError
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
 from functools import wraps
 import secrets
 import datetime
+from datetime import timedelta
+from urllib.parse import urlparse
 try:
     from flask_mail import Mail, Message
 except ImportError:
@@ -19,7 +22,7 @@ except ImportError:
     OAuth = None
 import json
 import requests
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 from sqlalchemy import or_
 from dotenv import load_dotenv
 try:
@@ -56,6 +59,41 @@ else:
 # Initialize CSRF protection
 app.config['WTF_CSRF_TIME_LIMIT'] = 86400  # 24 hours
 csrf = CSRFProtect(app)
+
+# Determine preferred async mode for Socket.IO
+# Priority: eventlet > gevent > threading
+async_mode = 'threading'
+try:
+    import eventlet
+    eventlet.monkey_patch()
+    async_mode = 'eventlet'
+    logging.info('✓ Using eventlet async_mode for SocketIO (production-recommended)')
+except ImportError:
+    try:
+        from gevent import monkey
+        monkey.patch_all()
+        async_mode = 'gevent'
+        logging.info('✓ Using gevent async_mode for SocketIO')
+    except ImportError:
+        logging.warning('⚠ eventlet/gevent not installed; using threading async_mode (performance degraded)')
+
+# Production CORS configuration
+_is_production = os.environ.get('FLASK_ENV') == 'production'
+_allowed_origins = os.environ.get('ALLOWED_ORIGINS', '*').split(',')
+
+# Initialize WebSocket (SocketIO) for real-time updates
+socketio = SocketIO(
+    app,
+    cors_allowed_origins=_allowed_origins,
+    async_mode=async_mode,
+    ping_interval=30,           # Send ping every 30 seconds
+    ping_timeout=60,            # Wait 60 seconds for pong response
+    engineio_logger=not _is_production,  # Disable verbose logging in production
+    logger=not _is_production,
+    max_http_buffer_size=1e6,   # 1MB max buffer
+    async_handlers=True         # Handle events asynchronously
+)
+logging.info(f'[SocketIO] Async mode: {async_mode} | CORS origins: {_allowed_origins}')
 
 # Render persistent disk path (must be defined before upload/DB config)
 RENDER_DATA_DIR = os.environ.get('RENDER_DATA_DIR', '/opt/render/project/data')
@@ -304,6 +342,15 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# Register secure admin routes blueprint (if present)
+try:
+    from .admin_routes_secure import admin_blueprint
+    app.register_blueprint(admin_blueprint, url_prefix='/admin')
+    print('[OK] Registered admin_routes_secure blueprint at /admin')
+except Exception as _e:
+    # Non-fatal: the blueprint may not be present during incremental edits
+    print(f"[INFO] admin_routes_secure blueprint not registered: {_e}")
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -317,6 +364,10 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
     # Extended profile fields
+    department = db.Column(db.String(100))  # For Students/Supervisors/Cordinators
+    section = db.Column(db.String(20))      # For Students
+    batch = db.Column(db.String(20))        # For Students
+    emp_id = db.Column(db.String(50))       # Optional for Supervisors/Cordinators
     program = db.Column(db.String(50))      # For Students (CS, IT, AI)
     semester = db.Column(db.String(20))     # For Students
     
@@ -394,17 +445,23 @@ class ProjectProposal(db.Model):
     description = db.Column(db.Text, nullable=False)
     major = db.Column(db.String(50), nullable=False)  # AI/ML, Cyber Security, Blockchain, Web Development, etc.
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     status = db.Column(db.String(20), default='Pending')  # 'Pending', 'Approved', 'Rejected'
     feedback = db.Column(db.Text)
+    file_attachment = db.Column(db.String(300), nullable=True)  # Stores filename/path of uploaded file
     
     # Foreign Keys
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('student_group.id'), nullable=True)  # Link to StudentGroup
     supervisor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Optional at first
+    coordinator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Coordinator for approval
     admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     
     # Relationships
     student = db.relationship('User', foreign_keys=[student_id], backref='proposed_projects')
+    group = db.relationship('StudentGroup', backref='proposals')
     supervisor = db.relationship('User', foreign_keys=[supervisor_id], backref='received_proposals')
+    coordinator = db.relationship('User', foreign_keys=[coordinator_id], backref='coordinator_proposals')
     admin = db.relationship('User', foreign_keys=[admin_id], backref='reviewed_proposals')
     
     def __repr__(self):
@@ -461,21 +518,24 @@ class Remark(db.Model):
     teacher_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey('student_group.id'), nullable=False)
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # NULL = whole group, set = specific student
-    teacher = db.relationship('User', foreign_keys=[teacher_id], backref='remarks')
-    student = db.relationship('User', foreign_keys=[student_id], backref='targeted_remarks')
+    teacher = db.relationship('User', foreign_keys=[teacher_id])
+    student = db.relationship('User', foreign_keys=[student_id])
 
-class TeacherUsername(db.Model):
+class RemarkResponse(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    is_used = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    user = db.relationship('User', backref='teacher_username')
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+    remark_id = db.Column(db.Integer, db.ForeignKey('remark.id'), nullable=False)
+    responder_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    remark = db.relationship('Remark', backref='responses')
+    responder = db.relationship('User', foreign_keys=[responder_id], backref='remark_responses')
 
 class GroupMember(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey('student_group.id'), nullable=False)
+    is_leader = db.Column(db.Boolean, default=False, nullable=False)
     user = db.relationship('User', backref='group_memberships')
     group = db.relationship('StudentGroup', backref='members')
 
@@ -567,7 +627,7 @@ class Submission(db.Model):
     file_type = db.Column(db.String(20))  # extension
     submission_type = db.Column(db.String(50), default='General')  # 'Proposal', 'Progress Report', 'Final Report', 'Code', 'Presentation', 'General'
     status = db.Column(db.String(20), default='Submitted')  # 'Submitted', 'Reviewed', 'Approved', 'Rejected'
-    feedback = db.Column(db.Text, nullable=True)  # supervisor/faculty feedback
+    feedback = db.Column(db.Text, nullable=True)  # supervisor/cordinator feedback
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
@@ -596,6 +656,8 @@ class AssignedWork(db.Model):
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
     due_date = db.Column(db.Date, nullable=True)
+    due_time = db.Column(db.String(8), nullable=True)
+    file_attachment = db.Column(db.String(300), nullable=True)
     priority = db.Column(db.String(20), default='Medium')  # Low, Medium, High, Urgent
     work_type = db.Column(db.String(50), default='General')  # Task, Report, Presentation, Review, Code, Milestone, General
     status = db.Column(db.String(20), default='Pending')  # Pending, In Progress, Submitted, Completed, Overdue, Needs Revision
@@ -624,6 +686,24 @@ class AssignedWork(db.Model):
         if self.due_date and self.status not in ('Completed', 'Submitted'):
             return datetime.date.today() > self.due_date
         return False
+
+
+class TeacherUsername(db.Model):
+    """
+    Stores cordinator/teacher usernames that can be used during registration.
+    Allows pre-approval of teacher accounts.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    is_used = db.Column(db.Boolean, default=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', backref='teacher_username_record')
+
+    def __repr__(self):
+        return f"TeacherUsername: {self.username} (used: {self.is_used})"
 
 
 class Resource(db.Model):
@@ -672,6 +752,51 @@ class Resource(db.Model):
             'txt': 'bi-file-earmark-text text-muted',
         }
         return icons.get(self.file_type, 'bi-file-earmark text-secondary')
+
+
+# ============================================
+# AUDIT LOGGING MODEL
+# ============================================
+
+class AuditLog(db.Model):
+    """
+    Persistent audit log for tracking all admin actions.
+    Used for security monitoring, compliance, and forensics.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    action = db.Column(db.String(50), nullable=False)  # e.g., CREATE_USER, DELETE_USER, CHANGE_ROLE
+    resource_type = db.Column(db.String(50), nullable=True)  # e.g., 'user', 'project', 'group'
+    resource_id = db.Column(db.String(50), nullable=True)  # ID of the affected resource
+    target_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # For user-targeted actions
+    ip_address = db.Column(db.String(50), nullable=True)
+    user_agent = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(20), default='SUCCESS')  # SUCCESS or FAILED
+    details = db.Column(db.Text, nullable=True)  # Additional context
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow, index=True)
+    
+    # Relationships
+    admin = db.relationship('User', foreign_keys=[admin_id], backref='audit_logs_created')
+    target_user = db.relationship('User', foreign_keys=[target_user_id], backref='audit_logs_targeted')
+    
+    def __repr__(self):
+        return f"<AuditLog {self.action} by {self.admin_id} at {self.timestamp}>"
+    
+    def to_dict(self):
+        """Convert audit log to dictionary for JSON serialization"""
+        return {
+            'id': self.id,
+            'admin_id': self.admin_id,
+            'admin_email': self.admin.email if self.admin else None,
+            'action': self.action,
+            'resource_type': self.resource_type,
+            'resource_id': self.resource_id,
+            'target_user_id': self.target_user_id,
+            'ip_address': self.ip_address,
+            'status': self.status,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'details': self.details
+        }
 
 
 # ============================================
@@ -810,6 +935,187 @@ def internal_server_error(e):
     logging.error(f"500 error: {e}")
     return render_template('500.html'), 500
 
+# ==================== WebSocket (SocketIO) Event Handlers ====================
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection to WebSocket"""
+    if current_user.is_authenticated:
+        user_room = f"user_{current_user.id}"
+        join_room(user_room)
+        emit('connect_response', {'data': 'Connected to real-time updates'})
+        logging.info(f"User {current_user.id} connected to WebSocket")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection"""
+    if current_user.is_authenticated:
+        logging.info(f"User {current_user.id} disconnected from WebSocket")
+
+@socketio.on('join_dashboard')
+def on_join_dashboard(data):
+    """User joins their dashboard room"""
+    if current_user.is_authenticated:
+        role = current_user.role
+        user_id = current_user.id
+        room = f"{role}_{user_id}"
+        join_room(room)
+        emit('status', {'msg': f'User joined {role} dashboard'})
+
+@socketio.on('request_dashboard_update')
+def handle_dashboard_update(data):
+    """Send updated dashboard data to requesting user"""
+    if not current_user.is_authenticated:
+        return
+    
+    user_id = current_user.id
+    role = current_user.role
+    
+    try:
+        if role == 'admin':
+            # Get updated admin data
+            updated_data = {
+                'users_count': User.query.count(),
+                'projects_count': StudentGroup.query.filter(StudentGroup.project_title != 'Pending Project Details').count(),
+                'groups_count': StudentGroup.query.count(),
+                'recent_activity': 'Updated activity feed'
+            }
+        elif role in ['cordinator', 'teacher']:
+            # Get updated coordinator data
+            student_groups = StudentGroup.query.filter_by(supervisor_id=user_id).all()
+            updated_data = {
+                'groups_count': len(student_groups),
+                'pending_tasks': 'Updated pending tasks'
+            }
+        elif role == 'supervisor':
+            # Get updated supervisor data
+            student_groups = StudentGroup.query.filter_by(supervisor_id=user_id).all()
+            all_remarks = Remark.query.filter(Remark.group_id.in_([g.id for g in student_groups])).count()
+            updated_data = {
+                'groups_count': len(student_groups),
+                'remarks_count': all_remarks,
+                'pending_submissions': 'Updated submissions'
+            }
+        elif role == 'student':
+            # Get updated student data
+            student_group_membership = GroupMember.query.filter_by(user_id=user_id).first()
+            if student_group_membership:
+                student_group = StudentGroup.query.get(student_group_membership.group_id)
+                assigned_works = AssignedWork.query.filter_by(group_id=student_group.id).all() if student_group else []
+                updated_data = {
+                    'assigned_work_total': len(assigned_works),
+                    'assigned_work_pending': sum(1 for w in assigned_works if w.status in ('Pending', 'In Progress')),
+                    'assigned_work_completed': sum(1 for w in assigned_works if w.status == 'Completed'),
+                    'assigned_work_overdue': sum(1 for w in assigned_works if w.status == 'Overdue')
+                }
+            else:
+                updated_data = {'assigned_work_total': 0}
+        else:
+            updated_data = {}
+        
+        emit('dashboard_update', updated_data)
+    except Exception as e:
+        logging.error(f"Error fetching dashboard update: {e}")
+        emit('error', {'msg': 'Failed to fetch update'})
+
+@app.route('/dashboard/update_data')
+@login_required
+def dashboard_update_data():
+    """HTTP fallback endpoint for dashboard data polling"""
+    role = current_user.role
+    user_id = current_user.id
+    try:
+        if role == 'admin':
+            updated_data = {
+                'users_count': User.query.count(),
+                'projects_count': StudentGroup.query.filter(StudentGroup.project_title != 'Pending Project Details').count(),
+                'groups_count': StudentGroup.query.count(),
+                'recent_activity': 'Updated activity feed'
+            }
+        elif role in ['cordinator', 'teacher']:
+            student_groups = StudentGroup.query.filter_by(supervisor_id=user_id).all()
+            updated_data = {
+                'groups_count': len(student_groups),
+                'pending_tasks': 'Updated pending tasks'
+            }
+        elif role == 'supervisor':
+            student_groups = StudentGroup.query.filter_by(supervisor_id=user_id).all()
+            all_remarks = Remark.query.filter(Remark.group_id.in_([g.id for g in student_groups])).count()
+            updated_data = {
+                'groups_count': len(student_groups),
+                'remarks_count': all_remarks,
+                'pending_submissions': 'Updated submissions'
+            }
+        elif role == 'student':
+            student_group_membership = GroupMember.query.filter_by(user_id=user_id).first()
+            if student_group_membership:
+                student_group = StudentGroup.query.get(student_group_membership.group_id)
+                assigned_works = AssignedWork.query.filter_by(group_id=student_group.id).all() if student_group else []
+                updated_data = {
+                    'assigned_work_total': len(assigned_works),
+                    'assigned_work_pending': sum(1 for w in assigned_works if w.status in ('Pending', 'In Progress')),
+                    'assigned_work_completed': sum(1 for w in assigned_works if w.status == 'Completed'),
+                    'assigned_work_overdue': sum(1 for w in assigned_works if w.status == 'Overdue')
+                }
+            else:
+                updated_data = {'assigned_work_total': 0}
+        else:
+            updated_data = {}
+        return jsonify(updated_data)
+    except Exception as e:
+        logging.error(f"Error fetching dashboard update data: {e}")
+        return jsonify({'error': 'Failed to fetch update'}), 500
+
+@socketio.on('notify_task_update')
+def handle_task_update(data):
+    """Broadcast task/assignment update to relevant users"""
+    if not current_user.is_authenticated:
+        return
+    
+    # Broadcast to group members
+    if 'group_id' in data:
+        group = StudentGroup.query.get(data['group_id'])
+        if group:
+            group_members = GroupMember.query.filter_by(group_id=group.id).all()
+            for member in group_members:
+                socketio.emit('task_updated', data, room=f"user_{member.user_id}")
+            # Also notify supervisor
+            if group.supervisor_id:
+                socketio.emit('task_updated', data, room=f"user_{group.supervisor_id}")
+
+@socketio.on('notify_notification')
+def handle_new_notification(data):
+    """Broadcast new notification to recipient"""
+    if not current_user.is_authenticated:
+        return
+    
+    if 'user_id' in data:
+        socketio.emit('new_notification', data, room=f"user_{data['user_id']}")
+
+@socketio.on('notify_submission')
+def handle_submission_update(data):
+    """Broadcast submission update to supervisors/teachers"""
+    if not current_user.is_authenticated:
+        return
+    
+    if 'group_id' in data:
+        group = StudentGroup.query.get(data['group_id'])
+        if group and group.supervisor_id:
+            socketio.emit('submission_updated', data, room=f"user_{group.supervisor_id}")
+
+@socketio.on('notify_remark')
+def handle_remark_update(data):
+    """Broadcast new remark to students"""
+    if not current_user.is_authenticated:
+        return
+    
+    if 'group_id' in data:
+        group = StudentGroup.query.get(data['group_id'])
+        if group:
+            group_members = GroupMember.query.filter_by(group_id=group.id).all()
+            for member in group_members:
+                socketio.emit('remark_received', data, room=f"user_{member.user_id}")
+
 @app.route('/health')
 def health_check():
     return jsonify({'status': 'ok'}), 200
@@ -841,9 +1147,9 @@ def login():
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
             # Check if the selected role matches the user's role in the database
-            # Treat 'teacher' and 'faculty' as interchangeable roles
-            user_role_normalized = 'faculty' if user.role == 'teacher' else user.role
-            selected_role_normalized = 'faculty' if selected_role == 'teacher' else selected_role
+            # Treat 'teacher' and 'cordinator' as interchangeable roles
+            user_role_normalized = 'cordinator' if user.role == 'teacher' else user.role
+            selected_role_normalized = 'cordinator' if selected_role == 'teacher' else selected_role
             
             if user_role_normalized != selected_role_normalized:
                 # Log failed attempt due to role mismatch
@@ -921,15 +1227,15 @@ def signup():
         affiliation = request.form.get('affiliation')
         other_affiliation = request.form.get('otherAffiliation')
         
-        # Validate role - only allow student and faculty, not supervisor/admin
-        allowed_roles = ['student', 'faculty']
+        # Validate role - only allow student and cordinator, not supervisor/admin
+        allowed_roles = ['student', 'cordinator']
         if role not in allowed_roles:
             flash(f'Invalid role. Allowed roles: {", ".join(allowed_roles)}', 'danger')
             return render_template('signup.html')
         
         # Validate password
-        if len(password) < 6:
-            flash('Password must be at least 6 characters long', 'danger')
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long', 'danger')
             return render_template('signup.html')
         
         if password != confirm_password:
@@ -941,19 +1247,19 @@ def signup():
             flash(f'Email already registered. You are registered as a {existing_user.role}. Please login.', 'danger')
             return render_template('signup.html')
             
-        # Check faculty username if registering as faculty
-        if role == 'faculty':
+        # Check cordinator username if registering as cordinator
+        if role == 'cordinator':
             if not username:
-                flash('Username is required for faculty accounts', 'danger')
+                flash('Username is required for cordinator accounts', 'danger')
                 return render_template('signup.html')
             
             teacher_username = TeacherUsername.query.filter_by(username=username.lower()).first()
             if not teacher_username:
-                flash('Invalid faculty username. Please contact an administrator.', 'danger')
+                flash('Invalid cordinator username. Please contact an administrator.', 'danger')
                 return render_template('signup.html')
             
             if teacher_username.is_used:
-                flash('This faculty username is already in use', 'danger')
+                flash('This cordinator username is already in use', 'danger')
                 return render_template('signup.html')
         
         user = User(
@@ -973,8 +1279,8 @@ def signup():
         db.session.add(user)
         db.session.commit()
         
-        # Mark faculty username as used if applicable
-        if role == 'faculty' and username:
+        # Mark cordinator username as used if applicable
+        if role == 'cordinator' and username:
             teacher_username = TeacherUsername.query.filter_by(username=username.lower()).first()
             if teacher_username:
                 teacher_username.is_used = True
@@ -1004,8 +1310,8 @@ def dashboard():
     """Generic dashboard route that redirects based on user role"""
     if current_user.role == 'admin':
         return redirect(url_for('dashboard_admin'))
-    elif current_user.role in ('faculty', 'teacher'):
-        return redirect(url_for('dashboard_faculty'))
+    elif current_user.role in ('cordinator', 'teacher'):
+        return redirect(url_for('dashboard_cordinator'))
     elif current_user.role == 'supervisor':
         return redirect(url_for('dashboard_supervisor'))
     elif current_user.role == 'student':
@@ -1041,30 +1347,96 @@ def delete_user(user_id):
     flash(f'User {user.email} has been deleted.', 'success')
     return redirect(url_for('dashboard'))
 
-@app.route('/dashboard_faculty')
+@app.route('/dashboard_cordinator')
 @login_required
-def dashboard_faculty():
-    # Allow faculty and teacher roles (teacher is legacy name for faculty)
-    allowed_roles = {"faculty", "teacher"}
+def dashboard_cordinator():
+    # Allow cordinator and teacher roles (teacher is legacy name for cordinator)
+    allowed_roles = {"cordinator", "teacher"}
     if current_user.role not in allowed_roles:
         flash("Access denied.")
         return redirect(url_for('dashboard'))
     
-    # Get all groups supervised by the current user
-    supervised_groups = StudentGroup.query.filter_by(supervisor_id=current_user.id).all()
+    # Get all groups created/managed by the current coordinator
+    created_groups = StudentGroup.query.filter_by(supervisor_id=current_user.id).order_by(StudentGroup.group_id.asc()).all()
+    active_groups = [group for group in created_groups if group.project_title != 'Pending Project Details']
+    pending_groups = [group for group in created_groups if group.project_title == 'Pending Project Details']
     
-    # Get all students in the supervised groups
+    # Get all students in the coordinator-created groups
     supervised_student_ids = []
-    for group in supervised_groups:
+    for group in created_groups:
         group_members = GroupMember.query.filter_by(group_id=group.id).all()
         supervised_student_ids.extend([member.user_id for member in group_members])
     
     # Fetch the actual student objects
     supervised_students = User.query.filter(User.id.in_(supervised_student_ids)).all() if supervised_student_ids else []
-    
-    # Get all remarks for the supervised groups
+
+    # Restrict coordinators to see only students from their own department
+    coordinator_department = current_user.department.strip() if current_user.department else 'Unknown'
+    department_students = []
+    department_groups = []
+    department_group_students = []
+    department_unassigned_students = []
+    department_project_titles = set()
+    department_group_map = {}
+    department_student_group_map = {}
+    students = []
+
+    if current_user.role in allowed_roles and current_user.department:
+        dept_lower = current_user.department.strip().lower()
+        supervised_students = [student for student in supervised_students if student.department and student.department.strip().lower() == dept_lower]
+
+        department_students = [u for u in User.query.filter_by(role='student').all() if u.department and u.department.strip().lower() == dept_lower]
+        department_student_ids = [student.id for student in department_students]
+        department_group_students = []
+
+        if department_student_ids:
+            department_group_ids = [group_id for (group_id,) in db.session.query(GroupMember.group_id).filter(GroupMember.user_id.in_(department_student_ids)).distinct().all()]
+            if department_group_ids:
+                department_groups = StudentGroup.query.filter(StudentGroup.id.in_(department_group_ids)).all()
+                department_group_map = {group.id: group for group in department_groups}
+
+                group_members = GroupMember.query.filter(GroupMember.group_id.in_(department_group_ids)).all()
+                department_group_member_ids = [member.user_id for member in group_members]
+                department_student_group_map = {member.user_id: member.group_id for member in group_members}
+                department_group_students = User.query.filter(User.id.in_(department_group_member_ids)).all() if department_group_member_ids else []
+            else:
+                department_group_students = []
+                department_group_map = {}
+                department_student_group_map = {}
+
+            department_assigned_student_ids = [user_id for (user_id,) in db.session.query(GroupMember.user_id).filter(GroupMember.user_id.in_(department_student_ids)).distinct().all()]
+            department_unassigned_students = [student for student in department_students if student.id not in department_assigned_student_ids]
+            department_project_titles = {group.project_title for group in department_groups if group.project_title}
+        else:
+            department_group_students = []
+            department_group_map = {}
+            department_student_group_map = {}
+
+    # Build a normalized student list with group information for display and filtering
+    students = []
+    for student in department_students:
+        group_id = department_student_group_map.get(student.id)
+        group = department_group_map.get(group_id) if group_id else None
+        students.append({
+            'id': student.id,
+            'first_name': student.first_name,
+            'last_name': student.last_name,
+            'email': student.email,
+            'program': student.program or 'N/A',
+            'semester': student.semester or 'N/A',
+            'group_label': group.group_id if group else 'Ungrouped',
+            'group_project': group.project_title if group and group.project_title else 'N/A',
+            'grouped': bool(group)
+        })
+
+    department_student_count = len(department_students)
+    department_group_count = len(department_groups)
+    department_project_count = len(department_project_titles) if department_project_titles else department_group_count
+    department_unassigned_count = len(department_unassigned_students)
+
+    # Get all remarks for the coordinator's department groups
     all_remarks = []
-    for group in supervised_groups:
+    for group in department_groups:
         remarks = Remark.query.filter_by(group_id=group.id).order_by(Remark.timestamp.desc()).all()
         for remark in remarks:
             all_remarks.append({
@@ -1075,64 +1447,12 @@ def dashboard_faculty():
                 'project_title': group.project_title
             })
     
-    # Get today's and tomorrow's schedules
+    # Build coordinator schedule summaries
     today = datetime.datetime.now().strftime('%A')
     tomorrow = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%A')
-    
-    # Get all room schedules (all classes)
-    room_schedules = RoomSchedule.query.all()
-    
-    # Get all time slots and rooms for reference
-    time_slots = {ts.id: ts for ts in TimeSlot.query.all()}
-    rooms = {r.id: r for r in Room.query.all()}
-    
-    # Get teacher information for each schedule
-    teacher_schedules = TeacherSchedule.query.all()
-    teacher_map = {}
-    for ts in teacher_schedules:
-        key = f"{ts.time_slot_id}"
-        teacher = User.query.get(ts.teacher_id)
-        if teacher:
-            teacher_map[key] = {
-                'name': f"{teacher.first_name} {teacher.last_name}",
-                'subject': ts.subject
-            }
-    
-    today_schedules = []
-    tomorrow_schedules = []
-    
-    for schedule in room_schedules:
-        if schedule.time_slot_id in time_slots and schedule.room_id in rooms:
-            time_slot = time_slots[schedule.time_slot_id]
-            room = rooms[schedule.room_id]
-            
-            # Get teacher info if available
-            teacher_info = teacher_map.get(f"{schedule.time_slot_id}", None)
-            teacher_name = teacher_info['name'] if teacher_info else "No teacher assigned"
-            subject = teacher_info['subject'] if teacher_info else schedule.class_name
-            
-            schedule_info = {
-                'id': schedule.id,
-                'time': f"{time_slot.start_time} - {time_slot.end_time}",
-                'start_time': time_slot.start_time,
-                'class_name': schedule.class_name,
-                'room': room.name,
-                'teacher': teacher_name,
-                'subject': subject,
-                'day': time_slot.day
-            }
-            
-            if time_slot.day == today:
-                today_schedules.append(schedule_info)
-            elif time_slot.day == tomorrow:
-                tomorrow_schedules.append(schedule_info)
-    
-    # Sort schedules by start time
-    today_schedules.sort(key=lambda x: x['start_time'])
-    tomorrow_schedules.sort(key=lambda x: x['start_time'])
-    
-    # Get assigned works for all supervised groups
-    supervised_group_ids = [g.id for g in supervised_groups]
+
+    # Get assigned works for all department groups
+    supervised_group_ids = [g.id for g in department_groups]
     all_assigned_works = AssignedWork.query.filter(
         AssignedWork.group_id.in_(supervised_group_ids)
     ).order_by(
@@ -1140,17 +1460,28 @@ def dashboard_faculty():
         AssignedWork.due_date.asc()
     ).all() if supervised_group_ids else []
     
-    # Get vivas for supervised groups
+    # Get vivas for department groups
     all_vivas = Viva.query.filter(
         Viva.group_id.in_(supervised_group_ids)
     ).order_by(Viva.scheduled_date.asc()).all() if supervised_group_ids else []
-    
-    # Get project statuses for supervised groups
+
+    # Build coordinator schedule summaries
+    today_date = datetime.datetime.now().date()
+    tomorrow_date = today_date + datetime.timedelta(days=1)
+    today_schedules = [work for work in all_assigned_works if work.due_date == today_date]
+    tomorrow_schedules = [work for work in all_assigned_works if work.due_date == tomorrow_date]
+    upcoming_deadlines = [work for work in all_assigned_works if work.due_date and work.due_date > tomorrow_date]
+    overdue_tasks_count = sum(1 for work in all_assigned_works if work.is_overdue)
+    today_vivas = [v for v in all_vivas if v.scheduled_date == today_date]
+    tomorrow_vivas = [v for v in all_vivas if v.scheduled_date == tomorrow_date]
+    upcoming_vivas = [v for v in all_vivas if v.scheduled_date and v.scheduled_date > tomorrow_date]
+
+    # Get project statuses for department groups
     all_project_statuses = {ps.group_id: ps for ps in ProjectStatus.query.filter(
         ProjectStatus.group_id.in_(supervised_group_ids)
     ).all()} if supervised_group_ids else {}
-    
-    # Get project details (progress) for supervised groups
+
+    # Get project details (progress) for department groups
     all_project_details = {pd.group_id: pd for pd in ProjectDetails.query.filter(
         ProjectDetails.group_id.in_(supervised_group_ids)
     ).all()} if supervised_group_ids else {}
@@ -1165,7 +1496,7 @@ def dashboard_faculty():
     else:
         project_progress = 0
     
-    # Get groups assigned to this faculty for evaluation (via ProjectStatus)
+    # Get groups assigned to this cordinator for evaluation (via ProjectStatus)
     assigned_project_statuses = ProjectStatus.query.filter_by(teacher_id=current_user.id).all()
     assigned_group_ids = [ps.group_id for ps in assigned_project_statuses]
     assigned_groups = StudentGroup.query.filter(StudentGroup.id.in_(assigned_group_ids)).all() if assigned_group_ids else []
@@ -1176,24 +1507,67 @@ def dashboard_faculty():
     
     # Get submissions for supervised groups
     all_submissions = Submission.query.filter(Submission.group_id.in_(supervised_group_ids)).order_by(Submission.created_at.desc()).all() if supervised_group_ids else []
+
+    # Compute pending groups (groups with no submissions) and late submissions placeholder
+    submission_group_ids = {s.group_id for s in all_submissions} if all_submissions else set()
+    pending_groups_calc = [g for g in department_groups if g.id not in submission_group_ids] if department_groups else []
+
+    # Late submissions: not explicitly tracked on Submission model; leave empty or derive from other data later
+    late_submissions_calc = []
     
-    return render_template('dashboard_faculty.html', 
+    # Get project proposals pending for this coordinator
+    pending_proposals = ProjectProposal.query.filter_by(
+        coordinator_id=current_user.id,
+        status='Pending'
+    ).order_by(ProjectProposal.created_at.desc()).all()
+    
+    approved_proposals = ProjectProposal.query.filter_by(
+        coordinator_id=current_user.id,
+        status='Approved'
+    ).order_by(ProjectProposal.created_at.desc()).all()
+    
+    rejected_proposals = ProjectProposal.query.filter_by(
+        coordinator_id=current_user.id,
+        status='Rejected'
+    ).order_by(ProjectProposal.created_at.desc()).all()
+    
+    return render_template('dashboard_cordinator.html', 
                           current_user=current_user,
-                          today_schedules=today_schedules,
-                          tomorrow_schedules=tomorrow_schedules,
-                          groups=supervised_groups,
+                          coordinator_department=coordinator_department,
+                          department_student_count=department_student_count,
+                          department_group_count=department_group_count,
+                          department_project_count=department_project_count,
+                          department_unassigned_count=department_unassigned_count,
+                          department_groups=department_groups,
+                          department_unassigned_students=department_unassigned_students,
+                          groups=department_groups,
+                          created_groups=created_groups,
+                          active_groups=active_groups,
                           assigned_groups=assigned_groups,
-                          students=supervised_students,
+                          students=students,
                           remarks=all_remarks,
                           today=today,
                           assigned_groups_count=assigned_groups_count,
                           pending_evaluations_count=pending_evaluations_count,
                           all_assigned_works=all_assigned_works,
                           all_vivas=all_vivas,
+                          today_schedules=today_schedules,
+                          tomorrow_schedules=tomorrow_schedules,
+                          upcoming_deadlines=upcoming_deadlines,
+                          overdue_tasks_count=overdue_tasks_count,
+                          today_vivas=today_vivas,
+                          tomorrow_vivas=tomorrow_vivas,
+                          upcoming_vivas=upcoming_vivas,
                           all_project_statuses=all_project_statuses,
                           all_project_details=all_project_details,
                           project_progress=project_progress,
-                          all_submissions=all_submissions)
+                          all_submissions=all_submissions,
+                          supervised_groups=department_groups,
+                          pending_groups=pending_groups_calc,
+                          late_submissions=late_submissions_calc,
+                          pending_proposals=pending_proposals,
+                          approved_proposals=approved_proposals,
+                          rejected_proposals=rejected_proposals)
 
 @app.route('/dashboard_admin')
 @login_required
@@ -1202,15 +1576,25 @@ def dashboard_admin():
         flash("Access denied.")
         return redirect(url_for('index'))
     
+    # Import datetime as dt to avoid shadowing issues
+    import datetime as dt
+    
     # Get query parameters
     page = request.args.get('page', 1, type=int)
     per_page = 20  # Display 20 users per page
     search_query = request.args.get('search', '')
     role_filter = request.args.get('role', '')
+    project_search_query = request.args.get('project_search', '').strip()
+    project_department_filter = request.args.get('department', 'all')
+    project_status_filter = request.args.get('status', 'all')
+    project_semester_filter = request.args.get('semester', 'all')
+    group_department_filter = request.args.get('group_department', 'all')
+    group_status_filter = request.args.get('group_status', 'all')
+    group_semester_filter = request.args.get('group_semester', 'all')
     
-    # Start with base query
-    query = User.query
-    
+# Start with base query excluding admin accounts
+    query = User.query.filter(User.role != 'admin')
+
     # Apply search filter if provided
     if search_query:
         search_term = f"%{search_query}%"
@@ -1221,7 +1605,7 @@ def dashboard_admin():
                 User.last_name.like(search_term)
             )
         )
-    
+
     # Apply role filter if provided
     if role_filter and role_filter != 'all':
         query = query.filter(User.role == role_filter)
@@ -1233,9 +1617,9 @@ def dashboard_admin():
     # Get all users for counting
     all_users = User.query.all()
     
-    # Count users by role (treating 'teacher' and 'faculty' as the same)
+    # Count users by role (treating 'teacher' and 'cordinator' as the same)
     all_students = [u for u in all_users if u.role == 'student']
-    teachers = [u for u in all_users if u.role in ('teacher', 'faculty')]
+    teachers = [u for u in all_users if u.role in ('teacher', 'cordinator')]
     supervisors = [u for u in all_users if u.role == 'supervisor']
     admins = [u for u in all_users if u.role == 'admin']
     
@@ -1246,6 +1630,15 @@ def dashboard_admin():
     
     # Get all projects/groups
     projects = StudentGroup.query.all()
+
+    project_departments = sorted(
+        {u.department for u in all_users if u.department},
+        key=lambda value: value.lower()
+    )
+    project_semesters = sorted(
+        {u.semester for u in all_students if u.semester},
+        key=lambda value: (int(value) if str(value).isdigit() else str(value))
+    )
     
     # Calculate project status counts based on actual ProjectStatus records
     # Get the latest status for each group
@@ -1258,6 +1651,83 @@ def dashboard_admin():
     
     # Get all groups
     groups = StudentGroup.query.all()
+
+    from datetime import datetime, timedelta
+
+    def get_group_latest_status(group):
+        latest_status = None
+        if getattr(group, 'statuses', None):
+            latest_status = sorted(group.statuses, key=lambda status: status.created_at or dt.datetime.min, reverse=True)[0]
+        return latest_status
+
+    def get_group_semesters(group):
+        semesters = []
+        for member in getattr(group, 'members', []) or []:
+            member_semester = getattr(member.user, 'semester', None)
+            if member_semester:
+                semesters.append(str(member_semester).strip())
+        return semesters
+
+    project_groups = []
+    for group in groups:
+        latest_status = get_group_latest_status(group)
+        group_department = group.supervisor.department.strip() if group.supervisor and group.supervisor.department else ''
+        group_status = latest_status.status if latest_status else 'Pending'
+        group_semesters = get_group_semesters(group)
+        search_text = ' '.join([
+            str(group.group_id or ''),
+            str(group.project_title or ''),
+            str(group_department),
+            str(group_status),
+            ' '.join(group_semesters),
+            str(group.supervisor.first_name if group.supervisor else ''),
+            str(group.supervisor.last_name if group.supervisor else '')
+        ]).lower()
+
+        if project_search_query and project_search_query.lower() not in search_text:
+            continue
+        if project_department_filter != 'all' and group_department != project_department_filter:
+            continue
+        if project_status_filter != 'all' and group_status != project_status_filter:
+            continue
+        if project_semester_filter != 'all' and project_semester_filter not in group_semesters:
+            continue
+
+        project_groups.append(group)
+
+    group_departments = sorted(
+        {
+            group.supervisor.department.strip()
+            for group in groups
+            if group.supervisor and group.supervisor.department
+        },
+        key=lambda value: value.lower()
+    )
+    group_semesters = sorted(
+        {
+            semester
+            for group in groups
+            for semester in get_group_semesters(group)
+            if semester
+        },
+        key=lambda value: (int(value) if str(value).isdigit() else str(value))
+    )
+
+    filtered_groups = []
+    for group in groups:
+        latest_status = get_group_latest_status(group)
+        group_department = group.supervisor.department.strip() if group.supervisor and group.supervisor.department else ''
+        group_status = latest_status.status if latest_status else 'Pending'
+        group_semesters = get_group_semesters(group)
+
+        if group_department_filter != 'all' and group_department != group_department_filter:
+            continue
+        if group_status_filter != 'all' and group_status != group_status_filter:
+            continue
+        if group_semester_filter != 'all' and group_semester_filter not in group_semesters:
+            continue
+
+        filtered_groups.append(group)
     
     # Count groups with no status record as 'Pending'
     groups_without_status = len([g for g in groups if g.id not in latest_statuses])
@@ -1267,6 +1737,16 @@ def dashboard_admin():
     conditional_count = list(latest_statuses.values()).count('Conditionally Accepted')
     deferred_count = list(latest_statuses.values()).count('Deferred')
     completed = list(latest_statuses.values()).count('Completed')
+
+    total_projects = len(projects)
+    ongoing_projects = pending_count + accepted_count + conditional_count
+    completed_projects = completed
+    rejected_projects = deferred_count
+
+    total_groups_count = len(groups)
+    completed_groups_count = completed
+    active_groups_count = max(total_groups_count - completed_groups_count, 0)
+    groups_without_supervisor_count = len([group for group in groups if not group.supervisor_id])
     
     # Keep old variable names for stat cards compatibility
     on_track = accepted_count
@@ -1278,7 +1758,7 @@ def dashboard_admin():
     
     # Calculate system usage analytics
     from datetime import datetime, timedelta
-    now = datetime.now()
+    now = dt.datetime.now()
 
     # Last 7 days and last 30 days
     last_7_days = now - timedelta(days=7)
@@ -1321,7 +1801,6 @@ def dashboard_admin():
     recent_logins = LoginAttempt.query.order_by(LoginAttempt.timestamp.desc()).limit(10).all()
 
     # Build recent activity feed from real data
-    import datetime as dt
     now = dt.datetime.utcnow()
     recent_activities = []
     
@@ -1420,14 +1899,58 @@ def dashboard_admin():
         db_status = 'Error'
         db_ok = False
     
+    non_admin_users = [u for u in all_users if u.role != 'admin']
     system_status = {
         'db_status': db_status,
         'db_ok': db_ok,
-        'total_users': len(all_users),
+        'total_users': len(non_admin_users),
         'total_groups': len(projects),
         'total_vivas': Viva.query.count(),
         'pending_vivas': Viva.query.filter_by(status='Scheduled').count(),
     }
+
+    # Dashboard timeline widgets
+    today_date = dt.date.today()
+    upcoming_schedules = Viva.query.filter(
+        Viva.status == 'Scheduled',
+        Viva.scheduled_date >= today_date
+    ).order_by(Viva.scheduled_date.asc(), Viva.scheduled_time.asc()).limit(3).all()
+
+    pending_proposals_count = ProjectProposal.query.filter_by(status='Pending').count()
+    recent_proposals = ProjectProposal.query.order_by(ProjectProposal.created_at.desc()).limit(2).all()
+    recent_remarks_for_notifications = Remark.query.order_by(Remark.timestamp.desc()).limit(2).all()
+
+    dashboard_notifications = []
+    if pending_proposals_count > 0:
+        dashboard_notifications.append({
+            'icon': 'bi-file-earmark-text',
+            'icon_class': 'primary',
+            'title': f'{pending_proposals_count} project proposal(s) pending review',
+            'subtitle': 'Needs admin attention',
+            'time': 'Today'
+        })
+
+    for proposal in recent_proposals:
+        dashboard_notifications.append({
+            'icon': 'bi-lightbulb',
+            'icon_class': 'warning',
+            'title': proposal.title,
+            'subtitle': f"Proposal {proposal.status.lower()}",
+            'time': proposal.created_at.strftime('%d %b %Y') if proposal.created_at else 'Recently'
+        })
+
+    for remark in recent_remarks_for_notifications:
+        group_obj = StudentGroup.query.get(remark.group_id) if remark.group_id else None
+        group_name = group_obj.group_id if group_obj else 'a group'
+        dashboard_notifications.append({
+            'icon': 'bi-chat-left-dots',
+            'icon_class': 'success',
+            'title': f'New supervisor feedback for {group_name}',
+            'subtitle': 'Feedback updated',
+            'time': remark.timestamp.strftime('%d %b %Y') if remark.timestamp else 'Recently'
+        })
+
+    dashboard_notifications = dashboard_notifications[:3]
 
     # Trends calculation: compare last 7 days vs the 7 days before that (days 8-14)
     def calculate_trend(current_period, previous_period):
@@ -1461,9 +1984,31 @@ def dashboard_admin():
     remarks_trend = calculate_trend(remarks_7_days, remarks_prev_week)
     
     return render_template('dashboard_admin_modern.html', 
-                          total_users=len(all_users),
-                          total_projects=len(projects),
+                          total_users=len(non_admin_users),
+                          total_projects=total_projects,
                           total_groups=len(projects),
+                          total_groups_count=total_groups_count,
+                          active_groups_count=active_groups_count,
+                          completed_groups_count=completed_groups_count,
+                          groups_without_supervisor_count=groups_without_supervisor_count,
+                          ongoing_projects=ongoing_projects,
+                          completed_projects=completed_projects,
+                          rejected_projects=rejected_projects,
+                          can_create_users=True,
+                          can_create_projects=False,
+                          project_groups=project_groups,
+                          project_search_query=project_search_query,
+                          project_department_filter=project_department_filter,
+                          project_status_filter=project_status_filter,
+                          project_semester_filter=project_semester_filter,
+                          project_departments=project_departments,
+                          project_semesters=project_semesters,
+                          groups_filtered=filtered_groups,
+                          group_department_filter=group_department_filter,
+                          group_status_filter=group_status_filter,
+                          group_semester_filter=group_semester_filter,
+                          group_departments=group_departments,
+                          group_semesters=group_semesters,
                           users=users,
                           pagination=users_paginated,
                           students=students,
@@ -1500,6 +2045,9 @@ def dashboard_admin():
                           failed_logins_30_days=failed_logins_30_days,
                           recent_logins=recent_logins,
                           recent_activities=recent_activities,
+                          upcoming_schedules=upcoming_schedules,
+                          dashboard_notifications=dashboard_notifications,
+                          dashboard_now=dt.datetime.now(),
                           system_status=system_status,
                           teacher_usernames=TeacherUsername.query.order_by(TeacherUsername.created_at.desc()).all(),
                           resources=Resource.query.order_by(Resource.created_at.desc()).all())
@@ -1511,12 +2059,24 @@ def dashboard_supervisor():
         flash("Access denied.")
         return redirect(url_for('dashboard'))
     
-    # Get only this supervisor's groups
+    # Import datetime as dt to avoid shadowing issues
+    import datetime as dt
+    
+    # Get only this supervisor's approved groups
     student_groups = StudentGroup.query.filter_by(supervisor_id=current_user.id).all()
+    visible_groups = []
+    for group in student_groups:
+        latest_proposal = ProjectProposal.query.filter_by(group_id=group.id).order_by(ProjectProposal.created_at.desc()).first()
+        if latest_proposal and latest_proposal.status == 'Approved':
+            visible_groups.append(group)
+
+    student_groups = visible_groups
     
     # Get all remarks from teachers for their groups
     all_remarks = []
     for group in student_groups:
+        latest_submission = Submission.query.filter_by(group_id=group.id).order_by(Submission.created_at.desc()).first()
+        submission_type = latest_submission.submission_type if latest_submission else 'General'
         remarks = Remark.query.filter_by(group_id=group.id).order_by(Remark.timestamp.desc()).all()
         for remark in remarks:
             teacher = User.query.get(remark.teacher_id)
@@ -1526,30 +2086,100 @@ def dashboard_supervisor():
                 if student:
                     student_name = f"{student.first_name} {student.last_name}"
             if teacher:
+                content_lower = (remark.content or '').lower()
+                if any(word in content_lower for word in ['good', 'excellent', 'well done', 'positive', 'approved', 'strong']):
+                    remark_type = 'Positive'
+                elif any(word in content_lower for word in ['needs', 'improve', 'poor', 'incomplete', 'rework', 'issue', 'delay']):
+                    remark_type = 'Needs Improvement'
+                else:
+                    remark_type = 'General'
+
+                # Load student replies for this remark so supervisors can review them
+                responses = RemarkResponse.query.filter_by(remark_id=remark.id).order_by(RemarkResponse.timestamp.asc()).all()
+                response_list = []
+                for response in responses:
+                    responder = User.query.get(response.responder_id)
+                    response_list.append({
+                        'id': response.id,
+                        'content': response.content,
+                        'timestamp': response.timestamp,
+                        'student_name': f"{responder.first_name} {responder.last_name}" if responder else 'Student'
+                    })
+
                 all_remarks.append({
+                    'id': remark.id,
                     'content': remark.content,
                     'teacher_name': f"{teacher.first_name} {teacher.last_name}",
                     'timestamp': remark.timestamp,
                     'group_id': group.group_id,
                     'project_title': group.project_title,
-                    'student_name': student_name
+                    'student_name': student_name,
+                    'submission_type': submission_type,
+                    'remark_type': remark_type,
+                    'responses': response_list
                 })
-    
-    # Get milestones for all supervised groups (kept for faculty)
+
+    # Sort remarks by most recent first
+    all_remarks.sort(key=lambda r: r['timestamp'] or dt.datetime.min, reverse=True)
+
+    # Get counts used in the remarks summary cards
+    positive_remarks_count = sum(1 for r in all_remarks if r['remark_type'] == 'Positive')
+    needs_improvement_count = sum(1 for r in all_remarks if r['remark_type'] == 'Needs Improvement')
+    recent_remarks_count = sum(1 for r in all_remarks if r['timestamp'] and r['timestamp'] >= dt.datetime.utcnow() - timedelta(days=7))
+    submission_types = sorted({r['submission_type'] for r in all_remarks if r.get('submission_type')})
+
+    # Get milestones for all supervised groups (kept for cordinator)
     group_ids = [g.id for g in student_groups]
-    
+
     # Get vivas for supervised groups
     all_vivas = Viva.query.filter(Viva.group_id.in_(group_ids)).order_by(Viva.scheduled_date.asc()).all() if group_ids else []
     
     # Get project statuses
     all_project_statuses = {ps.group_id: ps for ps in ProjectStatus.query.filter(ProjectStatus.group_id.in_(group_ids)).all()} if group_ids else {}
-    
+
+    # Evaluation metrics for supervisor dashboard
+    total_eval_projects = len(student_groups)
+    completed_evaluations = sum(1 for g in student_groups if all_project_statuses.get(g.id) and all_project_statuses[g.id].status != 'Pending')
+    pending_evaluations = sum(1 for g in student_groups if not all_project_statuses.get(g.id) or all_project_statuses[g.id].status == 'Pending')
+    avg_progress = 0
+
+    # Get the latest proposal status for supervised groups
+    group_proposal_statuses = {}
+    if group_ids:
+        proposals = ProjectProposal.query.filter(ProjectProposal.group_id.in_(group_ids)).order_by(ProjectProposal.group_id, ProjectProposal.created_at.desc()).all()
+        for proposal in proposals:
+            if proposal.group_id not in group_proposal_statuses:
+                group_proposal_statuses[proposal.group_id] = proposal
+
     # Get project details (progress)
     all_project_details = {pd.group_id: pd for pd in ProjectDetails.query.filter(ProjectDetails.group_id.in_(group_ids)).all()} if group_ids else {}
+    if student_groups:
+        avg_progress = round(
+            sum(
+                (
+                    all_project_details.get(g.id).progress
+                    if all_project_details.get(g.id) is not None and all_project_details.get(g.id).progress is not None
+                    else 0
+                )
+                for g in student_groups
+            ) / len(student_groups)
+        )
     
     # Get submissions for supervised groups
     all_submissions = Submission.query.filter(Submission.group_id.in_(group_ids)).order_by(Submission.created_at.desc()).all() if group_ids else []
+    awaiting_review_count = sum(1 for s in all_submissions if s.status in ('Submitted', 'Reviewed'))
+    approved_submissions_count = sum(1 for s in all_submissions if s.status == 'Approved')
+    needs_revision_count = sum(1 for s in all_submissions if s.status == 'Rejected')
+    submission_type_options = sorted({s.submission_type for s in all_submissions if s.submission_type})
     
+    # Find group leaders so supervisor can see leader names in the submission table
+    group_leaders = {}
+    if group_ids:
+        leader_members = GroupMember.query.filter(GroupMember.group_id.in_(group_ids), GroupMember.is_leader == True).all()
+        for member in leader_members:
+            if member.group_id not in group_leaders and member.user:
+                group_leaders[member.group_id] = f"{member.user.first_name} {member.user.last_name}"
+
     # Get assigned works for supervised groups
     all_assigned_works = AssignedWork.query.filter(AssignedWork.group_id.in_(group_ids)).order_by(AssignedWork.created_at.desc()).all() if group_ids else []
     
@@ -1568,10 +2198,24 @@ def dashboard_supervisor():
     return render_template('dashboard_supervisor.html', 
                            supervised_groups=student_groups,
                            all_remarks=all_remarks,
+                           positive_remarks_count=positive_remarks_count,
+                           needs_improvement_count=needs_improvement_count,
+                           recent_remarks_count=recent_remarks_count,
+                           submission_types=submission_types,
+                           total_eval_projects=total_eval_projects,
+                           completed_evaluations=completed_evaluations,
+                           pending_evaluations=pending_evaluations,
+                           avg_progress=avg_progress,
                            all_vivas=all_vivas,
                            all_project_statuses=all_project_statuses,
+                           group_proposal_statuses=group_proposal_statuses,
                            all_project_details=all_project_details,
                            all_submissions=all_submissions,
+                           awaiting_review_count=awaiting_review_count,
+                           approved_submissions_count=approved_submissions_count,
+                           needs_revision_count=needs_revision_count,
+                           submission_type_options=submission_type_options,
+                           group_leaders=group_leaders,
                            all_assigned_works=all_assigned_works,
                            group_members=group_members,
                            resources=Resource.query.order_by(Resource.created_at.desc()).all())
@@ -1579,9 +2223,13 @@ def dashboard_supervisor():
 @app.route('/dashboard/student')
 @role_required('student')
 def dashboard_student():
+    # Import datetime as dt to avoid shadowing issues
+    import datetime as dt
+    from datetime import timedelta
+    
     # Get today's and tomorrow's day names
-    today = datetime.datetime.now().strftime('%A')
-    tomorrow = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%A')
+    today = dt.datetime.now().strftime('%A')
+    tomorrow = (dt.datetime.now() + timedelta(days=1)).strftime('%A')
     
     # Get the student's group if they're assigned to one
     student_group_membership = GroupMember.query.filter_by(user_id=current_user.id).first()
@@ -1595,14 +2243,97 @@ def dashboard_student():
     if student_group and student_group.supervisor_id:
         supervisor = User.query.get(student_group.supervisor_id)
     
-    # Get remarks/feedback for the group
+    # Get remarks/feedback for the group and supervisor-wide group remarks
     remarks = []
     if student_group:
-        # Show remarks for the whole group (student_id is NULL) or specifically for this student
-        remarks = Remark.query.filter_by(group_id=student_group.id).filter(
+        # Student-specific/group-wide remarks for this group
+        own_group_filter = db.and_(
+            Remark.group_id == student_group.id,
             db.or_(Remark.student_id == None, Remark.student_id == current_user.id)
-        ).order_by(Remark.timestamp.desc()).all()
-    
+        )
+
+        # Include group-wide remarks from other groups supervised by the same supervisor
+        supervisor_group_filter = None
+        if student_group.supervisor_id:
+            same_supervisor_group_ids = [g.id for g in StudentGroup.query.filter_by(supervisor_id=student_group.supervisor_id).all()]
+            if same_supervisor_group_ids:
+                supervisor_group_filter = db.and_(
+                    Remark.group_id.in_(same_supervisor_group_ids),
+                    db.or_(Remark.student_id == None, Remark.student_id == current_user.id)
+                )
+
+        if supervisor_group_filter is not None:
+            remarks = Remark.query.filter(db.or_(own_group_filter, supervisor_group_filter)).order_by(Remark.timestamp.desc()).all()
+        else:
+            remarks = Remark.query.filter(own_group_filter).order_by(Remark.timestamp.desc()).all()
+
+    # Compute student remark categories and summary counts for the remarks tab
+    student_remarks = []
+    total_remarks = len(remarks)
+    positive_remarks_count = 0
+    suggestion_remarks_count = 0
+    submission_remarks_count = 0
+    positive_keywords = ['good', 'excellent', 'well done', 'positive', 'approved', 'strong', 'great', 'nice', 'successful']
+    suggestion_keywords = ['needs', 'improve', 'poor', 'incomplete', 'rework', 'issue', 'delay', 'suggest', 'recommend', 'better']
+    submission_keywords = ['submission', 'submitted', 'document', 'report', 'srs', 'proposal', 'file']
+
+    for remark in remarks:
+        content = (remark.content or '').strip()
+        content_lower = content.lower()
+        if any(word in content_lower for word in positive_keywords):
+            remark_type = 'Positive'
+            positive_remarks_count += 1
+            badge_class = 'success'
+            badge_label = 'Positive'
+        elif any(word in content_lower for word in suggestion_keywords):
+            remark_type = 'Suggestion'
+            suggestion_remarks_count += 1
+            badge_class = 'warning'
+            badge_label = 'Suggestion'
+        else:
+            remark_type = 'General'
+            badge_class = 'secondary'
+            badge_label = 'General Remark'
+
+        is_submission_remark = any(word in content_lower for word in submission_keywords)
+        if is_submission_remark:
+            submission_remarks_count += 1
+            if remark_type == 'General':
+                badge_class = 'info'
+                badge_label = 'Submission Remark'
+            elif remark_type == 'Suggestion':
+                badge_label = 'Submission Suggestion'
+            elif remark_type == 'Positive':
+                badge_label = 'Submission Feedback'
+
+        # Get responses for this remark
+        responses = RemarkResponse.query.filter_by(remark_id=remark.id).order_by(RemarkResponse.timestamp.asc()).all()
+        remark_responses = []
+        for response in responses:
+            student = User.query.get(response.responder_id)
+            student_name = f"{student.first_name} {student.last_name}" if student else "Unknown Student"
+            remark_responses.append({
+                'id': response.id,
+                'student_name': student_name,
+                'content': response.content,
+                'timestamp': response.timestamp
+            })
+
+        student_remarks.append({
+            'id': remark.id,
+            'teacher_name': f"{remark.teacher.first_name} {remark.teacher.last_name}" if remark.teacher else 'Supervisor',
+            'student_target': True if remark.student_id else False,
+            'remarks_to': 'Individual' if remark.student_id else 'Group',
+            'timestamp': remark.timestamp,
+            'content': content,
+            'remark_type': remark_type,
+            'badge_label': badge_label,
+            'badge_class': badge_class,
+            'is_submission_remark': is_submission_remark,
+            'search_text': f"{remark.teacher.first_name} {remark.teacher.last_name} {content_lower}",
+            'responses': remark_responses
+        })
+
     # Get all room schedules (all classes)
     room_schedules = RoomSchedule.query.all()
     
@@ -1651,12 +2382,15 @@ def dashboard_student():
     
     # Get progress for student's group
     project_progress = 0
+    project_description = None
     if student_group:
         # Get real progress from ProjectDetails
         details = ProjectDetails.query.filter_by(group_id=student_group.id).first()
         if details:
             project_progress = details.progress
-    
+            project_description = details.description
+        project_description = project_description or student_group.project_description
+
     # Get student's submissions
     submissions = []
     if student_group:
@@ -1664,22 +2398,105 @@ def dashboard_student():
 
     # Get assigned works for this student
     assigned_works = []
+    upcoming_deadlines = []
     if student_group:
         assigned_works = AssignedWork.query.filter(
             AssignedWork.group_id == student_group.id,
             db.or_(AssignedWork.assigned_to == current_user.id, AssignedWork.assigned_to == None)
         ).order_by(db.case((AssignedWork.due_date == None, 1), else_=0), AssignedWork.due_date.asc(), AssignedWork.created_at.desc()).all()
-        # Auto-mark overdue
+        # Auto-mark overdue and collect upcoming deadlines
+        today_date = dt.date.today()
         for w in assigned_works:
             if w.is_overdue and w.status == 'Pending':
                 w.status = 'Overdue'
+            if w.due_date:
+                days_left = (w.due_date - today_date).days
+                w.days_left = days_left
+                w.due_label = f"{abs(days_left)} day{'s' if abs(days_left) != 1 else ''} {'left' if days_left >= 0 else 'overdue'}"
+                upcoming_deadlines.append({
+                    'title': w.title,
+                    'due_date': w.due_date.strftime('%d %b %Y'),
+                    'days_left': days_left,
+                    'label': w.due_label,
+                    'status': w.status,
+                    'work_type': w.work_type,
+                    'due_date_obj': w.due_date
+                })
+            else:
+                w.days_left = None
+                w.due_label = None
+        upcoming_deadlines.sort(key=lambda x: x['due_date_obj'])
+        upcoming_deadlines = upcoming_deadlines[:4]
         db.session.commit()
+
+        assigned_work_total = len(assigned_works)
+        assigned_work_pending = sum(1 for w in assigned_works if w.status in ('Pending', 'In Progress'))
+        assigned_work_completed = sum(1 for w in assigned_works if w.status == 'Completed')
+        assigned_work_overdue = sum(1 for w in assigned_works if w.status == 'Overdue')
+        assigned_work_statuses = sorted({w.status for w in assigned_works if w.status})
+        assigned_work_priorities = sorted({w.priority for w in assigned_works if w.priority})
+    else:
+        assigned_work_total = 0
+        assigned_work_pending = 0
+        assigned_work_completed = 0
+        assigned_work_overdue = 0
+        assigned_work_statuses = []
+        assigned_work_priorities = []
+
+    # Build recent activity from remarks and submissions
+    recent_activity = []
+    if student_group:
+        for sub in submissions:
+            recent_activity.append({
+                'type': 'submission',
+                'title': sub.title,
+                'message': f"You uploaded {sub.submission_type or 'a document'}",
+                'details': sub.description or sub.original_filename,
+                'timestamp': sub.created_at,
+                'icon': 'bi-cloud-arrow-up'
+            })
+
+    for remark in remarks:
+        sender = remark.teacher.first_name if remark.teacher else 'Supervisor'
+        recent_activity.append({
+            'type': 'remark',
+            'title': f"Remark from {sender}",
+            'message': 'New supervisor remark received',
+            'details': remark.content,
+            'timestamp': remark.timestamp or dt.datetime.utcnow(),
+            'icon': 'bi-chat-left-text'
+        })
+
+    recent_activity.sort(key=lambda x: x['timestamp'], reverse=True)
+    
+    group_members = []
+    latest_remark = None
+    project_milestones = []
+    project_started_on = None
+    project_documents = []
+    if student_group:
+        group_members = GroupMember.query.filter_by(group_id=student_group.id).all()
+        latest_remark = remarks[0] if remarks else None
+        project_milestones = ProjectMilestone.query.filter_by(group_id=student_group.id).order_by(ProjectMilestone.due_date.asc()).all()
+        project_started_on = student_group.created_at.strftime('%d %b %Y') if student_group.created_at else None
+        project_documents = submissions[:4]
+
+    # Check if student is a group leader
+    is_group_leader = False
+    if student_group_membership and student_group_membership.is_leader:
+        is_group_leader = True
 
     return render_template(
         'dashboard_student.html',
         student_group=student_group,
         supervisor=supervisor,
         remarks=remarks,
+        group_members=group_members,
+        latest_remark=latest_remark,
+        project_milestones=project_milestones,
+        project_description=project_description,
+        project_started_on=project_started_on,
+        project_documents=project_documents,
         today_schedules=schedules_by_day.get(today, []),
         tomorrow_schedules=schedules_by_day.get(tomorrow, []),
         today=today,
@@ -1687,7 +2504,21 @@ def dashboard_student():
         project_progress=project_progress,
         submissions=submissions,
         assigned_works=assigned_works,
+        assigned_work_total=assigned_work_total,
+        assigned_work_pending=assigned_work_pending,
+        assigned_work_completed=assigned_work_completed,
+        assigned_work_overdue=assigned_work_overdue,
+        assigned_work_statuses=assigned_work_statuses,
+        assigned_work_priorities=assigned_work_priorities,
+        upcoming_deadlines=upcoming_deadlines,
+        recent_activity=recent_activity,
+        student_remarks=student_remarks,
+        total_remarks=total_remarks,
+        positive_remarks_count=positive_remarks_count,
+        suggestion_remarks_count=suggestion_remarks_count,
+        submission_remarks_count=submission_remarks_count,
         current_user=current_user,
+        is_group_leader=is_group_leader,
         resources=Resource.query.order_by(Resource.created_at.desc()).all()
     )
 
@@ -1700,7 +2531,7 @@ def admin_db():
 @app.route('/add_remark', methods=['POST'])
 @login_required
 def add_remark():
-    if current_user.role not in ("faculty", "teacher", "admin", "supervisor"):
+    if current_user.role not in ("cordinator", "teacher", "admin", "supervisor"):
         flash("Access denied.")
         return redirect(url_for('index'))
     
@@ -1748,6 +2579,23 @@ def add_remark():
             logger.info(f"Remark added by {current_user.email} for student {student.email} in group {group.group_id}")
         else:
             logger.info(f"Remark added by {current_user.email} for group {group.group_id}")
+
+        # Emit real-time update to group members in the target room
+        try:
+            payload = {
+                'remark_id': new_remark.id,
+                'group_id': group.id,
+                'teacher_id': current_user.id,
+                'student_id': target_student_id,
+                'content': new_remark.content,
+                'timestamp': new_remark.timestamp.isoformat() if new_remark.timestamp else None
+            }
+            group_members = GroupMember.query.filter_by(group_id=group.id).all()
+            for member in group_members:
+                socketio.emit('remark_received', payload, room=f"user_{member.user_id}")
+        except Exception as e:
+            logger.error(f"Error emitting remark_received event: {e}")
+
         flash("Remark added successfully", 'success')
         return redirect(url_for('dashboard'))
     
@@ -1759,6 +2607,66 @@ def add_remark():
     except Exception as e:
         db.session.rollback()
         logger.error(f"Unexpected error adding remark: {str(e)}")
+        flash(f"Unexpected error: {str(e)}", 'danger')
+        return redirect(url_for('dashboard'))
+
+@app.route('/add_remark_response', methods=['POST'])
+@login_required
+def add_remark_response():
+    if current_user.role not in ("student",):
+        flash("Access denied.")
+        return redirect(url_for('dashboard'))
+    
+    remark_id = request.form.get('remark_id')
+    content = request.form.get('content')
+    
+    try:
+        remark = Remark.query.filter_by(id=remark_id).first()
+        if not remark:
+            flash("Remark not found", 'danger')
+            return redirect(url_for('dashboard'))
+        
+        # Check if student is part of the group this remark belongs to
+        student_group_membership = GroupMember.query.filter_by(user_id=current_user.id, group_id=remark.group_id).first()
+        if not student_group_membership:
+            flash("You can only respond to remarks for your own group", 'danger')
+            return redirect(url_for('dashboard'))
+        
+        if not content or len(str(content).strip()) == 0:
+            flash("Response content cannot be empty", 'danger')
+            return redirect(url_for('dashboard'))
+        
+        new_response = RemarkResponse(
+            content=content,
+            remark_id=remark.id,
+            responder_id=current_user.id
+        )
+        
+        db.session.add(new_response)
+        db.session.commit()
+        
+        try:
+            group = StudentGroup.query.get(remark.group_id)
+            if group and group.supervisor_id:
+                payload = {
+                    'remark_id': remark.id,
+                    'response_id': new_response.id,
+                    'group_id': remark.group_id,
+                    'responder_id': current_user.id,
+                    'content': new_response.content,
+                    'timestamp': new_response.timestamp.isoformat() if new_response.timestamp else None
+                }
+                socketio.emit('remark_response_received', payload, room=f"user_{group.supervisor_id}")
+        except Exception as e:
+            logger.error(f"Error emitting remark_response_received event: {e}")
+
+        logger.info(f"Remark response added by {current_user.email} to remark {remark.id}")
+        flash("Response added successfully", 'success')
+        return redirect(url_for('dashboard'))
+    
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Unexpected error adding remark response: {str(e)}")
         flash(f"Unexpected error: {str(e)}", 'danger')
         return redirect(url_for('dashboard'))
 
@@ -1832,7 +2740,7 @@ def student_submit_work():
 def download_submission(submission_id):
     submission = Submission.query.get_or_404(submission_id)
     
-    # Access control: student (own group), supervisor (own groups), faculty/teacher, admin
+    # Access control: student (own group), supervisor (own groups), cordinator/teacher, admin
     if current_user.role == 'student':
         membership = GroupMember.query.filter_by(user_id=current_user.id, group_id=submission.group_id).first()
         if not membership:
@@ -1843,7 +2751,7 @@ def download_submission(submission_id):
         if not group or group.supervisor_id != current_user.id:
             flash("Access denied.", 'danger')
             return redirect(url_for('dashboard'))
-    elif current_user.role not in ('faculty', 'teacher', 'admin'):
+    elif current_user.role not in ('cordinator', 'teacher', 'admin'):
         flash("Access denied.", 'danger')
         return redirect(url_for('dashboard'))
     
@@ -1891,7 +2799,7 @@ def delete_submission(submission_id):
 @app.route('/submission/review/<int:submission_id>', methods=['POST'])
 @login_required
 def review_submission(submission_id):
-    if current_user.role not in ('supervisor', 'faculty', 'teacher', 'admin'):
+    if current_user.role not in ('supervisor', 'cordinator', 'teacher', 'admin'):
         flash("Access denied.", 'danger')
         return redirect(url_for('dashboard'))
     
@@ -1915,12 +2823,266 @@ def review_submission(submission_id):
         submission.status = new_status
         submission.feedback = feedback
         db.session.commit()
+
+        try:
+            group = StudentGroup.query.get(submission.group_id)
+            payload = {
+                'submission_id': submission.id,
+                'group_id': submission.group_id,
+                'status': submission.status,
+                'feedback': submission.feedback,
+                'title': submission.title,
+                'timestamp': submission.updated_at.isoformat() if submission.updated_at else None
+            }
+            if group:
+                group_members = GroupMember.query.filter_by(group_id=group.id).all()
+                for member in group_members:
+                    socketio.emit('submission_updated', payload, room=f"user_{member.user_id}")
+                if group.supervisor_id:
+                    socketio.emit('submission_updated', payload, room=f"user_{group.supervisor_id}")
+        except Exception as emit_error:
+            logger.error(f"Error emitting submission_updated event: {emit_error}")
+
         flash(f"Submission marked as '{new_status}'.", 'success')
     except Exception as e:
         db.session.rollback()
         flash(f"Error updating submission: {str(e)}", 'danger')
     
     return redirect(url_for('dashboard'))
+
+# ========== PROJECT PROPOSAL ROUTES ==========
+
+@app.route('/project-proposal')
+@role_required('student')
+def project_proposal():
+    """Group leader can view and manage project proposals."""
+    # Check if student is a group leader
+    group_membership = GroupMember.query.filter_by(user_id=current_user.id).first()
+    if not group_membership or not group_membership.is_leader:
+        flash("Access denied. Only group leaders can access this section.", 'danger')
+        return redirect(url_for('dashboard_student'))
+    
+    student_group = StudentGroup.query.get(group_membership.group_id)
+    if not student_group:
+        flash("Group not found.", 'danger')
+        return redirect(url_for('dashboard_student'))
+    
+    # Get coordinator for this group's department
+    coordinator = User.query.filter_by(
+        role='cordinator',
+        department=current_user.department
+    ).first()
+    
+    # Get all proposals for this group
+    proposals = ProjectProposal.query.filter_by(
+        student_id=current_user.id,
+        group_id=student_group.id
+    ).order_by(ProjectProposal.created_at.desc()).all()
+    
+    return jsonify({
+        'success': True,
+        'proposals': [
+            {
+                'id': p.id,
+                'title': p.title,
+                'description': p.description,
+                'major': p.major,
+                'status': p.status,
+                'created_at': p.created_at.strftime('%b %d, %Y at %H:%M'),
+                'updated_at': p.updated_at.strftime('%b %d, %Y at %H:%M') if p.updated_at else None,
+                'feedback': p.feedback,
+                'file_attachment': p.file_attachment,
+                'coordinator_feedback': p.feedback if p.status in ['Approved', 'Rejected'] else None
+            }
+            for p in proposals
+        ]
+    })
+
+@app.route('/submit-project-proposal', methods=['POST'])
+@role_required('student')
+def submit_project_proposal():
+    """Submit a new project proposal."""
+    # Check if student is a group leader
+    group_membership = GroupMember.query.filter_by(user_id=current_user.id).first()
+    if not group_membership or not group_membership.is_leader:
+        flash("Access denied. Only group leaders can submit proposals.", 'danger')
+        return redirect(url_for('dashboard_student'))
+    
+    student_group = StudentGroup.query.get(group_membership.group_id)
+    if not student_group:
+        flash("Group not found.", 'danger')
+        return redirect(url_for('dashboard_student'))
+    
+    title = request.form.get('title', '').strip()
+    description = request.form.get('description', '').strip()
+    major = request.form.get('major', '').strip()
+    file = request.files.get('file')
+    
+    # Validate required fields
+    if not title or not description or not major:
+        flash("Title, description, and category are required.", 'danger')
+        return redirect(url_for('dashboard_student'))
+    
+    # Get coordinator for this group's department
+    coordinator = User.query.filter_by(
+        role='cordinator',
+        department=current_user.department
+    ).first()
+    
+    file_attachment = None
+    
+    # Handle file upload
+    if file and file.filename:
+        if not allowed_file(file.filename):
+            flash(f'Invalid file type. Allowed: {", ".join(ALLOWED_EXTENSIONS)}', 'danger')
+            return redirect(url_for('dashboard_student'))
+        
+        # Create proposals subdirectory
+        proposals_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'proposals')
+        os.makedirs(proposals_dir, exist_ok=True)
+        
+        # Generate unique filename
+        original_filename = file.filename
+        ext = original_filename.rsplit('.', 1)[1].lower()
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        stored_filename = f"proposal_{group_membership.group_id}_{timestamp}_{secure_filename(original_filename)}"
+        
+        filepath = os.path.join(proposals_dir, stored_filename)
+        file.save(filepath)
+        file_attachment = f"proposals/{stored_filename}"
+    
+    # Create new proposal
+    try:
+        proposal = ProjectProposal(
+            title=title,
+            description=description,
+            major=major,
+            student_id=current_user.id,
+            group_id=student_group.id,
+            coordinator_id=coordinator.id if coordinator else None,
+            status='Pending',
+            file_attachment=file_attachment
+        )
+        db.session.add(proposal)
+        db.session.commit()
+        
+        flash("Project proposal submitted successfully! Awaiting coordinator approval.", 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error submitting proposal: {str(e)}", 'danger')
+    
+    return redirect(url_for('dashboard_student'))
+
+@app.route('/proposal/<int:proposal_id>/download')
+@login_required
+def download_proposal_file(proposal_id):
+    """Download attached proposal file."""
+    proposal = ProjectProposal.query.get_or_404(proposal_id)
+    
+    # Check access: student who submitted, coordinator, or admin
+    if current_user.id != proposal.student_id and \
+       current_user.role not in ('cordinator', 'teacher', 'admin'):
+        flash("Access denied.", 'danger')
+        return redirect(url_for('dashboard'))
+    
+    if not proposal.file_attachment:
+        flash("No file attached to this proposal.", 'danger')
+        return redirect(url_for('dashboard'))
+    
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], proposal.file_attachment)
+    if not os.path.exists(filepath):
+        flash("File not found.", 'danger')
+        return redirect(url_for('dashboard'))
+    
+    return send_from_directory(
+        os.path.dirname(filepath),
+        os.path.basename(filepath),
+        as_attachment=True
+    )
+
+@app.route('/proposal/<int:proposal_id>/approve', methods=['POST'])
+def approve_proposal(proposal_id):
+    """Coordinator approves a project proposal."""
+    # Require login and role check
+    if current_user.role not in ('cordinator', 'teacher', 'admin'):
+        flash("Access denied.", 'danger')
+        return redirect(url_for('dashboard'))
+    proposal = ProjectProposal.query.get_or_404(proposal_id)
+    
+    # Check if current user is the assigned coordinator or admin
+    if current_user.role not in ('admin',) and proposal.coordinator_id != current_user.id:
+        flash("Access denied. This proposal is not for your department.", 'danger')
+        return redirect(url_for('dashboard_cordinator'))
+    
+    feedback = request.form.get('feedback', '').strip()
+    
+    try:
+        proposal.status = 'Approved'
+        proposal.feedback = feedback if feedback else "Your proposal has been approved!"
+        proposal.updated_at = datetime.datetime.utcnow()
+        db.session.commit()
+        
+        # Create a notification for the student
+        notification_msg = f"Your project proposal '{proposal.title}' has been approved!"
+        notification = Notification(
+            user_id=proposal.student_id,
+            message=notification_msg,
+            notification_type='proposal_approved',
+            is_read=False
+        )
+        db.session.add(notification)
+        db.session.commit()
+        
+        flash(f"Proposal '{proposal.title}' approved successfully!", 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error approving proposal: {str(e)}", 'danger')
+    
+    return redirect(url_for('dashboard_cordinator'))
+
+@app.route('/proposal/<int:proposal_id>/reject', methods=['POST'])
+def reject_proposal(proposal_id):
+    """Coordinator rejects a project proposal."""
+    # Require login and role check
+    if current_user.role not in ('cordinator', 'teacher', 'admin'):
+        flash("Access denied.", 'danger')
+        return redirect(url_for('dashboard'))
+    proposal = ProjectProposal.query.get_or_404(proposal_id)
+    
+    # Check if current user is the assigned coordinator or admin
+    if current_user.role not in ('admin',) and proposal.coordinator_id != current_user.id:
+        flash("Access denied. This proposal is not for your department.", 'danger')
+        return redirect(url_for('dashboard_cordinator'))
+    
+    feedback = request.form.get('feedback', '').strip()
+    
+    if not feedback:
+        flash("Please provide a reason for rejection.", 'danger')
+        return redirect(url_for('dashboard_cordinator'))
+    
+    try:
+        proposal.status = 'Rejected'
+        proposal.feedback = feedback
+        proposal.updated_at = datetime.datetime.utcnow()
+        db.session.commit()
+        
+        # Create a notification for the student
+        notification_msg = f"Your project proposal '{proposal.title}' has been rejected. Reason: {feedback[:100]}"
+        notification = Notification(
+            user_id=proposal.student_id,
+            message=notification_msg,
+            notification_type='proposal_rejected',
+            is_read=False
+        )
+        db.session.add(notification)
+        db.session.commit()
+        
+        flash(f"Proposal '{proposal.title}' rejected.", 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error rejecting proposal: {str(e)}", 'danger')
+    
+    return redirect(url_for('dashboard_cordinator'))
 
 # ========== ASSIGN WORK ROUTES ==========
 
@@ -1935,6 +3097,7 @@ def assign_work():
     title = request.form.get('work_title', '').strip()
     description = request.form.get('work_description', '').strip()
     due_date_str = request.form.get('work_due_date', '').strip()
+    due_time_str = request.form.get('work_due_time', '').strip()
     priority = request.form.get('work_priority', 'Medium')
     work_type = request.form.get('work_type', 'General')
     assigned_to_val = request.form.get('work_assigned_to', '').strip()  # '' = whole group, or user_id
@@ -1950,11 +3113,30 @@ def assign_work():
         return redirect(url_for('dashboard'))
 
     due_date = None
+    due_time = None
     if due_date_str:
         try:
             due_date = datetime.datetime.strptime(due_date_str, '%Y-%m-%d').date()
         except ValueError:
             flash("Invalid date format.", 'danger')
+            return redirect(url_for('dashboard'))
+    if due_time_str:
+        try:
+            due_time = datetime.datetime.strptime(due_time_str, '%H:%M').strftime('%H:%M')
+        except ValueError:
+            flash("Invalid time format.", 'danger')
+            return redirect(url_for('dashboard'))
+
+    file_attachment = None
+    work_file = request.files.get('work_attachment')
+    if work_file and work_file.filename:
+        if allowed_file(work_file.filename):
+            filename = secure_filename(work_file.filename)
+            stored_filename = f"assigned_{group_id}_{int(datetime.datetime.utcnow().timestamp())}_{secrets.token_hex(6)}_{filename}"
+            work_file.save(os.path.join(app.config['UPLOAD_FOLDER'], stored_filename))
+            file_attachment = stored_filename
+        else:
+            flash("Invalid file type. Allowed file types: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT, ZIP, RAR, PNG, JPG, JPEG.", 'danger')
             return redirect(url_for('dashboard'))
 
     assigned_to_id = None
@@ -1974,6 +3156,8 @@ def assign_work():
             title=title,
             description=description,
             due_date=due_date,
+            due_time=due_time,
+            file_attachment=file_attachment,
             priority=priority,
             work_type=work_type,
             group_id=group_id,
@@ -1982,6 +3166,29 @@ def assign_work():
         )
         db.session.add(work)
         db.session.commit()
+
+        try:
+            payload = {
+                'work_id': work.id,
+                'title': work.title,
+                'description': work.description,
+                'due_date': work.due_date.isoformat() if work.due_date else None,
+                'due_time': work.due_time,
+                'priority': work.priority,
+                'work_type': work.work_type,
+                'group_id': work.group_id,
+                'assigned_to': work.assigned_to,
+                'assigned_by': work.assigned_by,
+                'timestamp': work.created_at.isoformat() if work.created_at else None
+            }
+
+            group_members = GroupMember.query.filter_by(group_id=group_id).all()
+            for member in group_members:
+                socketio.emit('task_updated', payload, room=f"user_{member.user_id}")
+            if group.supervisor_id:
+                socketio.emit('task_updated', payload, room=f"user_{group.supervisor_id}")
+        except Exception as emit_error:
+            logger.error(f"Error emitting task_updated event: {emit_error}")
 
         student_name = "Entire Group"
         if assigned_to_id:
@@ -1994,6 +3201,30 @@ def assign_work():
         flash(f"Error assigning work: {str(e)}", 'danger')
 
     return redirect(url_for('dashboard'))
+
+
+@app.route('/supervisor/download_assigned_work/<int:work_id>', methods=['GET'])
+@login_required
+def download_assigned_work(work_id):
+    work = AssignedWork.query.get_or_404(work_id)
+    if not work.file_attachment:
+        flash("No attachment available for this work item.", 'warning')
+        return redirect(url_for('dashboard'))
+
+    if current_user.role == 'supervisor':
+        if work.assigned_by != current_user.id:
+            flash("Access denied.", 'danger')
+            return redirect(url_for('dashboard'))
+    elif current_user.role == 'student':
+        membership = GroupMember.query.filter_by(user_id=current_user.id, group_id=work.group_id).first()
+        if not membership or (work.assigned_to and work.assigned_to != current_user.id):
+            flash("Access denied.", 'danger')
+            return redirect(url_for('dashboard'))
+    else:
+        flash("Access denied.", 'danger')
+        return redirect(url_for('dashboard'))
+
+    return send_from_directory(app.config['UPLOAD_FOLDER'], work.file_attachment, as_attachment=True, download_name=work.file_attachment)
 
 
 @app.route('/supervisor/edit_work/<int:work_id>', methods=['POST'])
@@ -2013,6 +3244,7 @@ def edit_assigned_work(work_id):
     new_title = request.form.get('edit_work_title', '').strip()
     new_description = request.form.get('edit_work_description', '').strip()
     new_due_date_str = request.form.get('edit_work_due_date', '').strip()
+    new_due_time_str = request.form.get('edit_work_due_time', '').strip()
     new_priority = request.form.get('edit_work_priority', '').strip()
 
     try:
@@ -2026,6 +3258,10 @@ def edit_assigned_work(work_id):
             work.priority = new_priority
         if new_due_date_str:
             work.due_date = datetime.datetime.strptime(new_due_date_str, '%Y-%m-%d').date()
+        if new_due_time_str:
+            work.due_time = datetime.datetime.strptime(new_due_time_str, '%H:%M').strftime('%H:%M')
+        else:
+            work.due_time = None
 
         db.session.commit()
         flash(f"Work '{work.title}' updated.", 'success')
@@ -2081,12 +3317,42 @@ def student_update_work(work_id):
 
     new_status = request.form.get('student_work_status', '').strip()
     response_text = request.form.get('student_work_response', '').strip()
+    submission_file = request.files.get('student_submission_file')
 
     if new_status not in ('In Progress', 'Submitted'):
         flash("Invalid status update.", 'danger')
         return redirect(url_for('dashboard'))
 
     try:
+        if submission_file and submission_file.filename:
+            if not allowed_file(submission_file.filename):
+                flash(f"File type not allowed. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}", 'danger')
+                return redirect(url_for('dashboard'))
+
+            original_filename = secure_filename(submission_file.filename)
+            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+            stored_filename = f"submission_{current_user.id}_{work.id}_{timestamp}_{original_filename}"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], stored_filename)
+            submission_file.save(filepath)
+            file_size = os.path.getsize(filepath)
+            file_ext = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else ''
+
+            submission = Submission(
+                title=work.title,
+                description=response_text or f"Submission for '{work.title}'",
+                filename=stored_filename,
+                original_filename=original_filename,
+                file_size=file_size,
+                file_type=file_ext,
+                submission_type='Task Submission',
+                student_id=current_user.id,
+                group_id=work.group_id,
+                status='Submitted'
+            )
+            db.session.add(submission)
+            db.session.flush()
+            work.submission_id = submission.id
+
         work.status = new_status
         if response_text:
             work.student_response = response_text
@@ -2277,7 +3543,7 @@ def login_google():
     
     # Require role selection before Google login
     selected_role = request.args.get('role', '').strip()
-    if not selected_role or selected_role not in ('student', 'faculty', 'teacher', 'supervisor', 'admin'):
+    if not selected_role or selected_role not in ('student', 'cordinator', 'teacher', 'supervisor', 'admin'):
         flash('Please select your role before signing in with Google.', 'warning')
         return redirect(url_for('login'))
     
@@ -2321,8 +3587,8 @@ def authorize():
             
             if user:
                 # Verify the selected role matches the existing user's role
-                user_role_normalized = 'faculty' if user.role == 'teacher' else user.role
-                selected_role_normalized = 'faculty' if selected_role == 'teacher' else selected_role
+                user_role_normalized = 'cordinator' if user.role == 'teacher' else user.role
+                selected_role_normalized = 'cordinator' if selected_role == 'teacher' else selected_role
                 
                 if user_role_normalized != selected_role_normalized:
                     flash(f'Invalid role selected. You are registered as a {user.role}.', 'danger')
@@ -2344,8 +3610,8 @@ def authorize():
                 db.session.commit()
         else:
             # Existing Google-linked user — verify role matches
-            user_role_normalized = 'faculty' if user.role == 'teacher' else user.role
-            selected_role_normalized = 'faculty' if selected_role == 'teacher' else selected_role
+            user_role_normalized = 'cordinator' if user.role == 'teacher' else user.role
+            selected_role_normalized = 'cordinator' if selected_role == 'teacher' else selected_role
             
             if user_role_normalized != selected_role_normalized:
                 flash(f'Invalid role selected. You are registered as a {user.role}.', 'danger')
@@ -2459,23 +3725,70 @@ def admin_add_user():
         flash("Access denied.")
         return redirect(url_for('index'))
     
-    email = request.form.get('email')
-    first_name = request.form.get('firstName')
-    last_name = request.form.get('lastName')
-    role = request.form.get('role')
-    password = request.form.get('password')
+    email = (request.form.get('email') or '').strip().lower()
+    first_name = (request.form.get('firstName') or '').strip()
+    last_name = (request.form.get('lastName') or '').strip()
+    role = (request.form.get('role') or '').strip().lower()
+    if role == 'teacher':
+        role = 'cordinator'
+    password = request.form.get('password') or ''
+
+    # Role-specific profile fields
+    department = (request.form.get('department') or '').strip()
+    program = (request.form.get('program') or '').strip()
+    semester = (request.form.get('semester') or '').strip()
+    section = (request.form.get('section') or '').strip()
+    batch = (request.form.get('batch') or '').strip()
+
+    emp_id = (request.form.get('emp_id') or '').strip()
+    highest_degree = (request.form.get('highest_degree') or '').strip()
+    specialization = (request.form.get('specialization') or '').strip()
+
+    def redirect_with_prefill(message, category='danger'):
+        flash(message, category)
+        return redirect(url_for('dashboard_admin') + '#users')
+
+    if role not in ('student', 'supervisor', 'cordinator', 'admin'):
+        return redirect_with_prefill('Please select a valid role')
+
+    if not email or not first_name or not last_name or not password:
+        return redirect_with_prefill('Please fill all required basic fields')
+
+    if len(password) < 8:
+        return redirect_with_prefill('Password must be at least 8 characters long')
+
+    if role == 'student':
+        if not all([department, program, semester, section, batch]):
+            return redirect_with_prefill('For student account, department, program, semester, section and batch are required')
+
+    if role in ('supervisor', 'cordinator'):
+        if not department or not highest_degree:
+            return redirect_with_prefill(f'For {role} account, teaching department and highest degree are required')
+
+    # Prevent more than two coordinators in the same department
+    if role == 'cordinator':
+        existing_coordinator_count = User.query.filter_by(role='cordinator', department=department).count()
+        if existing_coordinator_count >= 2:
+            return redirect_with_prefill(f'A maximum of two coordinators are allowed for the {department} department')
     
     # Check if user already exists
     if User.query.filter_by(email=email).first():
-        flash('Email already registered', 'danger')
-        return redirect(url_for('dashboard') + '#users')
+        return redirect_with_prefill('Email already registered')
     
     # Create new user
     user = User(
         email=email,
         first_name=first_name,
         last_name=last_name,
-        role=role
+        role=role,
+        department=department or None,
+        program=program or None,
+        semester=semester or None,
+        section=section or None,
+        batch=batch or None,
+        emp_id=emp_id or None,
+        highest_degree=highest_degree or None,
+        specialization=specialization or None
     )
     user.set_password(password)
     
@@ -2484,6 +3797,11 @@ def admin_add_user():
     
     flash(f'User {first_name} {last_name} added successfully', 'success')
     return redirect(url_for('dashboard') + '#users')
+
+@app.route('/admin/create_user', methods=['POST'])
+@login_required
+def admin_create_user():
+    return admin_add_user()
 
 @app.route('/admin/edit_user/<int:user_id>', methods=['POST'])
 @login_required
@@ -2527,6 +3845,32 @@ def admin_delete_user(user_id):
         return redirect(url_for('index'))
     
     user = User.query.get_or_404(user_id)
+
+    # Keep admin on the same dashboard users view (including page/filter/search) after delete.
+    next_url = (request.form.get('next') or request.referrer or '').strip()
+    fallback_url = url_for('dashboard_admin') + '#users'
+
+    def _safe_users_redirect(target):
+        if not target:
+            return fallback_url
+
+        parsed = urlparse(target)
+
+        # Prevent open redirects to external hosts.
+        if parsed.netloc and parsed.netloc != request.host:
+            return fallback_url
+
+        path = parsed.path or ''
+        if not path.startswith('/'):
+            return fallback_url
+
+        query = f"?{parsed.query}" if parsed.query else ''
+        redirect_url = f"{path}{query}"
+        if '#users' not in redirect_url:
+            redirect_url = f"{redirect_url}#users"
+        return redirect_url
+
+    redirect_url = _safe_users_redirect(next_url)
     
     try:
         # Check if this user has any group memberships
@@ -2538,9 +3882,14 @@ def admin_delete_user(user_id):
             # Delete any group memberships
             GroupMember.query.filter_by(user_id=user.id).delete()
         
-        # Delete user remarks if they were faculty/teacher
-        if user.role in ('faculty', 'teacher'):
+        # Delete user remarks if they were cordinator/teacher
+        if user.role in ('cordinator', 'teacher'):
             Remark.query.filter_by(teacher_id=user.id).delete()
+
+        # Delete teaching schedules and assigned vivas first to avoid
+        # validator errors that require teacher_id to stay populated.
+        TeacherSchedule.query.filter_by(teacher_id=user.id).delete(synchronize_session=False)
+        Viva.query.filter_by(teacher_id=user.id).delete(synchronize_session=False)
         
         # Delete ProjectStatus records where this user is the teacher/evaluator
         ProjectStatus.query.filter_by(teacher_id=user.id).delete()
@@ -2561,7 +3910,197 @@ def admin_delete_user(user_id):
         db.session.rollback()
         flash(f'Error deleting user: {str(e)}', 'danger')
     
-    return redirect(url_for('dashboard') + '#users')
+    return redirect(redirect_url)
+
+# Admin view user profile
+@app.route('/admin/view_user/<int:user_id>')
+@login_required
+def admin_view_user(user_id):
+    if current_user.role != "admin":
+        flash("Access denied.")
+        return redirect(url_for('index'))
+    
+    user = User.query.get_or_404(user_id)
+    return render_template('admin_view_user_profile_fixed.html', user=user)
+
+@app.route('/admin/update_user/<int:user_id>', methods=['POST'])
+@login_required
+def admin_update_user(user_id):
+    if current_user.role != "admin":
+        flash("Access denied.")
+        return redirect(url_for('index'))
+
+    user = User.query.get_or_404(user_id)
+
+    # Keep existing values when disabled/unsubmitted fields are absent.
+    role = (request.form.get('role') or user.role or '').strip().lower()
+    email = (request.form.get('email') or user.email or '').strip().lower()
+    first_name = (request.form.get('first_name') or user.first_name or '').strip()
+    last_name = (request.form.get('last_name') or user.last_name or '').strip()
+
+    department = (request.form.get('department') if request.form.get('department') is not None else user.department)
+    program = (request.form.get('program') if request.form.get('program') is not None else user.program)
+    semester = (request.form.get('semester') if request.form.get('semester') is not None else user.semester)
+    section = (request.form.get('section') if request.form.get('section') is not None else user.section)
+    batch = (request.form.get('batch') if request.form.get('batch') is not None else user.batch)
+
+    emp_id = (request.form.get('emp_id') if request.form.get('emp_id') is not None else user.emp_id)
+    highest_degree = (request.form.get('highest_degree') if request.form.get('highest_degree') is not None else user.highest_degree)
+    specialization = (request.form.get('specialization') if request.form.get('specialization') is not None else user.specialization)
+
+    department = department.strip() if isinstance(department, str) else department
+    program = program.strip() if isinstance(program, str) else program
+    semester = semester.strip() if isinstance(semester, str) else semester
+    section = section.strip() if isinstance(section, str) else section
+    batch = batch.strip() if isinstance(batch, str) else batch
+    emp_id = emp_id.strip() if isinstance(emp_id, str) else emp_id
+    highest_degree = highest_degree.strip() if isinstance(highest_degree, str) else highest_degree
+    specialization = specialization.strip() if isinstance(specialization, str) else specialization
+
+    if role not in ('student', 'supervisor', 'cordinator', 'admin'):
+        flash('Invalid role selected', 'danger')
+        return redirect(url_for('admin_view_user', user_id=user.id))
+
+    if not email or not first_name or not last_name:
+        flash('Email, first name and last name are required', 'danger')
+        return redirect(url_for('admin_view_user', user_id=user.id))
+
+    if email != user.email:
+        existing = User.query.filter_by(email=email).first()
+        if existing and existing.id != user.id:
+            flash('This email is already in use by another user', 'danger')
+            return redirect(url_for('admin_view_user', user_id=user.id))
+
+    if role == 'student':
+        if not all([department, program, semester, section, batch]):
+            flash('Student requires department, program, semester, section and batch', 'danger')
+            return redirect(url_for('admin_view_user', user_id=user.id))
+    elif role in ('supervisor', 'cordinator'):
+        if not department or not highest_degree:
+            flash(f'{role.title()} requires teaching department and highest degree', 'danger')
+            return redirect(url_for('admin_view_user', user_id=user.id))
+
+    try:
+        user.role = role
+        user.email = email
+        user.first_name = first_name
+        user.last_name = last_name
+
+        user.department = department or None
+        user.program = program or None
+        user.semester = semester or None
+        user.section = section or None
+        user.batch = batch or None
+
+        user.emp_id = emp_id or None
+        user.highest_degree = highest_degree or None
+        user.specialization = specialization or None
+
+        # Clear non-applicable fields when role changes
+        if role == 'student':
+            user.emp_id = None if not user.emp_id else user.emp_id
+            user.highest_degree = None
+            user.specialization = None
+        elif role in ('supervisor', 'cordinator'):
+            user.program = None
+            user.semester = None
+            user.section = None
+            user.batch = None
+
+        db.session.commit()
+        flash('User information updated successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating user information: {str(e)}', 'danger')
+
+    return redirect(url_for('admin_view_user', user_id=user.id))
+
+# Admin reset user password
+@app.route('/admin/reset_user_password/<int:user_id>', methods=['POST'])
+@login_required
+def admin_reset_user_password(user_id):
+    if current_user.role != "admin":
+        flash("Access denied.")
+        return redirect(url_for('index'))
+    
+    user = User.query.get_or_404(user_id)
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    if not new_password or not confirm_password:
+        flash('Please enter a password and confirm it', 'danger')
+        return redirect(url_for('admin_view_user', user_id=user.id))
+    
+    if new_password != confirm_password:
+        flash('Passwords do not match', 'danger')
+        return redirect(url_for('admin_view_user', user_id=user.id))
+    
+    if len(new_password) < 8:
+        flash('Password must be at least 8 characters long', 'danger')
+        return redirect(url_for('admin_view_user', user_id=user.id))
+    
+    try:
+        user.set_password(new_password)
+        db.session.commit()
+        flash(f'Password for {user.first_name} {user.last_name} ({user.email}) has been reset successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error resetting password: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin_view_user', user_id=user.id))
+
+# Admin profile page
+@app.route('/admin/profile')
+@login_required
+def admin_profile():
+    if current_user.role != "admin":
+        flash("Access denied.")
+        return redirect(url_for('index'))
+    
+    return render_template('admin_profile_fixed.html', admin=current_user)
+
+# Admin change password
+@app.route('/admin/change_password', methods=['POST'])
+@login_required
+def admin_change_password():
+    if current_user.role != "admin":
+        flash("Access denied.")
+        return redirect(url_for('index'))
+    
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    # Verify current password
+    if not current_user.check_password(current_password):
+        flash('Current password is incorrect', 'danger')
+        return redirect(url_for('admin_profile'))
+    
+    if not new_password or not confirm_password:
+        flash('Please enter a password and confirm it', 'danger')
+        return redirect(url_for('admin_profile'))
+    
+    if new_password != confirm_password:
+        flash('New passwords do not match', 'danger')
+        return redirect(url_for('admin_profile'))
+    
+    if len(new_password) < 8:
+        flash('Password must be at least 8 characters long', 'danger')
+        return redirect(url_for('admin_profile'))
+    
+    if current_password == new_password:
+        flash('New password must be different from current password', 'danger')
+        return redirect(url_for('admin_profile'))
+    
+    try:
+        current_user.set_password(new_password)
+        db.session.commit()
+        flash('Your password has been changed successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error changing password: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin_profile'))
 
 # Admin Project Management
 @app.route('/admin/add_project', methods=['POST'])
@@ -2570,6 +4109,9 @@ def admin_add_project():
     if current_user.role != "admin":
         flash("Access denied.")
         return redirect(url_for('index'))
+    
+    flash("Access denied. Admins cannot create projects from the dashboard.", 'danger')
+    return redirect(url_for('dashboard_admin') + '#group-projects')
     
     try:
         project_title = request.form.get('project_title', '').strip()
@@ -2778,15 +4320,38 @@ def admin_group_members(group_id):
         return redirect(url_for('index'))
     
     group = StudentGroup.query.get_or_404(group_id)
-    
+
     # Get all members via relationship
     members = User.query.join(GroupMember).filter(GroupMember.group_id == group.id).all()
-    
-    return jsonify([{
-        'id': member.id,
-        'name': f"{member.first_name} {member.last_name}",
-        'email': member.email
-    } for member in members])
+
+    approved_proposal = (
+        ProjectProposal.query
+        .filter_by(group_id=group.id, status='Approved')
+        .order_by(ProjectProposal.updated_at.desc(), ProjectProposal.created_at.desc())
+        .first()
+    )
+
+    supervisor_name = None
+    if group.supervisor:
+        supervisor_name = f"{group.supervisor.first_name} {group.supervisor.last_name}".strip()
+
+    approved_by_name = None
+    if approved_proposal and approved_proposal.coordinator:
+        approved_by_name = f"{approved_proposal.coordinator.first_name} {approved_proposal.coordinator.last_name}".strip()
+
+    return jsonify({
+        'group_id': group.group_id,
+        'project_title': group.project_title,
+        'supervisor_name': supervisor_name,
+        'proposal_title': approved_proposal.title if approved_proposal else None,
+        'proposal_status': approved_proposal.status if approved_proposal else None,
+        'proposal_accepted_by': approved_by_name,
+        'members': [{
+            'id': member.id,
+            'name': f"{member.first_name} {member.last_name}",
+            'email': member.email
+        } for member in members]
+    })
 
 # Remove a student from a group
 @app.route('/admin/remove_member', methods=['POST'])
@@ -3194,10 +4759,10 @@ def admin_scheduling():
         flash('You do not have permission to access this page', 'danger')
         return redirect(url_for('dashboard'))
     
-    # Get all rooms, time slots, faculty, and groups
+    # Get all rooms, time slots, cordinator, and groups
     rooms = Room.query.all()
     time_slots = TimeSlot.query.order_by(TimeSlot.day, TimeSlot.start_time).all()
-    faculty = User.query.filter(User.role.in_(['teacher', 'faculty'])).all()
+    cordinator = User.query.filter(User.role.in_(['teacher', 'cordinator'])).all()
     groups = StudentGroup.query.all()
     
     # Get existing schedules
@@ -3227,11 +4792,13 @@ def admin_scheduling():
         rooms=rooms,
         time_slots=time_slots,
         time_slots_by_day=time_slots_by_day,
-        faculty=faculty,
+        cordinator=cordinator,
         groups=groups,
         teacher_schedule_map=teacher_schedule_map,
         room_schedule_map=room_schedule_map,
-        days=days
+        days=days,
+        can_manage_scheduling=False,
+        can_manage_rooms=True
     )
 
 @app.route("/admin/add_teacher_schedule", methods=["POST"])
@@ -3240,6 +4807,8 @@ def admin_add_teacher_schedule():
     if current_user.role != 'admin':
         flash('You do not have permission to manage schedules', 'danger')
         return redirect(url_for('dashboard'))
+    flash('Scheduling is view-only for admin.', 'warning')
+    return redirect(url_for('admin_scheduling'))
     
     try:
         teacher_id = request.form.get('teacher_id')
@@ -3342,6 +4911,8 @@ def admin_delete_teacher_schedule(schedule_id):
     if current_user.role != 'admin':
         flash('You do not have permission to manage schedules', 'danger')
         return redirect(url_for('dashboard'))
+    flash('Scheduling is view-only for admin.', 'warning')
+    return redirect(url_for('admin_scheduling'))
     
     try:
         # Get the teacher schedule
@@ -3373,6 +4944,8 @@ def admin_add_room_schedule():
     if current_user.role != 'admin':
         flash('You do not have permission to manage schedules', 'danger')
         return redirect(url_for('dashboard'))
+    flash('Scheduling is view-only for admin.', 'warning')
+    return redirect(url_for('admin_scheduling'))
     
     room_id = request.form.get('room_id')
     time_slot_id = request.form.get('time_slot_id')
@@ -3435,6 +5008,8 @@ def admin_delete_room_schedule(schedule_id):
     if current_user.role != 'admin':
         flash('You do not have permission to manage schedules', 'danger')
         return redirect(url_for('dashboard'))
+    flash('Scheduling is view-only for admin.', 'warning')
+    return redirect(url_for('admin_scheduling'))
     
     try:
         # Get the room schedule
@@ -3522,7 +5097,7 @@ def admin_viva_scheduling():
     
     # Get all student groups, teachers, and rooms
     groups = StudentGroup.query.all()
-    teachers = User.query.filter(User.role.in_(['teacher', 'faculty', 'supervisor'])).all()
+    teachers = User.query.filter(User.role.in_(['teacher', 'cordinator', 'supervisor'])).all()
     rooms = Room.query.all()
     
     # Get all scheduled vivas
@@ -3537,7 +5112,8 @@ def admin_viva_scheduling():
         teachers=teachers,
         rooms=rooms,
         vivas=vivas,
-        today=today
+        today=today,
+        can_manage_viva=False
     )
 
 @app.route("/admin/schedule_viva", methods=["POST"])
@@ -3546,6 +5122,8 @@ def admin_schedule_viva():
     if current_user.role != 'admin':
         flash('You do not have permission to manage vivas', 'danger')
         return redirect(url_for('dashboard'))
+    flash('Viva scheduling is view-only for admin.', 'warning')
+    return redirect(url_for('admin_viva_scheduling'))
     
     # Get form data
     group_id = request.form.get('group_id')
@@ -3579,7 +5157,7 @@ def admin_schedule_viva():
     db.session.add(viva)
     db.session.commit()
     
-    # Also create/update ProjectStatus to show in faculty dashboard
+    # Also create/update ProjectStatus to show in cordinator dashboard
     project_status = ProjectStatus.query.filter_by(group_id=group_id, teacher_id=teacher_id).first()
     if not project_status:
         project_status = ProjectStatus(
@@ -3599,6 +5177,8 @@ def admin_delete_viva(viva_id):
     if current_user.role != 'admin':
         flash('You do not have permission to manage vivas', 'danger')
         return redirect(url_for('dashboard'))
+    flash('Viva scheduling is view-only for admin.', 'warning')
+    return redirect(url_for('admin_viva_scheduling'))
     
     viva = Viva.query.get_or_404(viva_id)
     db.session.delete(viva)
@@ -3819,7 +5399,7 @@ def student_schedule():
             }
     
     # Organize schedules by day for easier rendering
-    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     schedules_by_day = {day: [] for day in days}
     
     for schedule in room_schedules:
@@ -3841,14 +5421,73 @@ def student_schedule():
                 'subject': subject
             })
     
+    # Add easy status labels for daily schedules
+    now = datetime.datetime.now().time()
+    for day in days:
+        for schedule in schedules_by_day[day]:
+            try:
+                start_time_str, end_time_str = [t.strip() for t in schedule['time'].split('-')]
+                start_time = datetime.datetime.strptime(start_time_str, '%H:%M').time()
+                end_time = datetime.datetime.strptime(end_time_str, '%H:%M').time()
+                if start_time <= now <= end_time:
+                    schedule['status'] = 'Ongoing'
+                elif now < start_time:
+                    schedule['status'] = 'Upcoming'
+                else:
+                    schedule['status'] = 'Completed'
+            except ValueError:
+                schedule['status'] = 'Upcoming'
+    
     # Sort each day's schedules by time
     for day in days:
         schedules_by_day[day].sort(key=lambda x: x['time'])
     
+    # Week and date metadata
+    today = dt.datetime.now().strftime('%A')
+    tomorrow = (dt.datetime.now() + timedelta(days=1)).strftime('%A')
+    today_date = dt.date.today()
+    week_start = today_date - timedelta(days=(today_date.weekday() + 1) % 7)
+    week_labels = []
+    for idx, day in enumerate(days):
+        date_obj = week_start + timedelta(days=idx)
+        week_labels.append({
+            'day': day,
+            'date': date_obj.strftime('%d %b')
+        })
+    
+    today_schedules = schedules_by_day.get(today, [])
+    tomorrow_schedules = schedules_by_day.get(tomorrow, [])
+    today_class_count = len(today_schedules)
+    week_class_count = sum(len(schedules_by_day[day]) for day in days)
+    total_hours = 0.0
+    for day in days:
+        for schedule in schedules_by_day[day]:
+            try:
+                start_time_str, end_time_str = [t.strip() for t in schedule['time'].split('-')]
+                start_dt = datetime.datetime.strptime(start_time_str, '%H:%M')
+                end_dt = datetime.datetime.strptime(end_time_str, '%H:%M')
+                total_hours += max((end_dt - start_dt).seconds / 3600.0, 0)
+            except ValueError:
+                continue
+    total_hours = round(total_hours, 1)
+    total_slots = len(time_slots)
+    free_periods = max(total_slots - week_class_count, 0)
+    today_message = f"You have {today_class_count} class{'es' if today_class_count != 1 else ''} today."
+    
     return render_template(
         'schedule_student.html',
         schedules_by_day=schedules_by_day,
-        days=days
+        days=days,
+        week_labels=week_labels,
+        today=today,
+        tomorrow=tomorrow,
+        today_schedules=today_schedules,
+        tomorrow_schedules=tomorrow_schedules,
+        today_class_count=today_class_count,
+        week_class_count=week_class_count,
+        total_hours=total_hours,
+        free_periods=free_periods,
+        today_message=today_message
     )
 
 # Define a helper function to safely recreate database tables
@@ -3868,7 +5507,7 @@ def recreate_tables():
             db.session.add(admin)
             
             # Create a sample teacher
-            teacher = User(email='teacher@example.com', first_name='John', last_name='Smith', role='faculty')
+            teacher = User(email='teacher@example.com', first_name='John', last_name='Smith', role='cordinator')
             teacher.set_password('teacher123')
             db.session.add(teacher)
             
@@ -4044,9 +5683,10 @@ def supervisor_add_project():
 @app.route('/add_project_and_group', methods=['GET', 'POST'])
 @login_required
 def add_project_and_group():
-    """Combined form for adding a project and assigning students to the group"""
-    if current_user.role != "admin":
-        flash("Access denied. Only admins can create projects and groups.", 'danger')
+    """Form for adding just a group and assigning students"""
+    allowed_roles = {"admin", "supervisor", "cordinator", "teacher"}
+    if current_user.role not in allowed_roles:
+        flash("Access denied. Only admins, supervisors, and coordinators can create projects and groups.", 'danger')
         return redirect(url_for('index'))
     
     # Get all students who are already assigned to groups
@@ -4057,82 +5697,249 @@ def add_project_and_group():
     available_students = User.query.filter(User.role == 'student')
     if assigned_ids:
         available_students = available_students.filter(~User.id.in_(assigned_ids))
+
+    if current_user.role == 'cordinator' and current_user.department:
+        dept_lower = current_user.department.strip().lower()
+        available_students = available_students.filter(
+            db.func.lower(db.func.trim(User.department)) == dept_lower
+        )
     
     students = available_students.all()
     
-    # Get all supervisors for dropdown
-    supervisors = User.query.filter(User.role.in_(['supervisor', 'faculty', 'teacher'])).all()
+    # Get eligible supervisors for dropdown
+    supervisors_query = User.query.filter(User.role.in_(['supervisor', 'teacher']))
+    if current_user.department:
+        dept_lower = current_user.department.strip().lower()
+        supervisors_query = supervisors_query.filter(
+            db.func.lower(db.func.trim(User.department)) == dept_lower
+        )
+    supervisors = supervisors_query.order_by(User.first_name.asc(), User.last_name.asc()).all()
     
     if request.method == 'POST':
-        group_id = request.form.get('group_id')
-        project_title = request.form.get('project_title')
-        project_description = request.form.get('project_description')
-        project_major = request.form.get('project_major')
+        group_id = request.form.get('group_id', '').strip()
         selected_students = request.form.getlist('selected_students')
-        supervisor_id = request.form.get('supervisor_id')
+        supervisor_id = request.form.get('supervisor_id', '').strip()
         
+        group_leader = request.form.get('group_leader', '').strip()
+
         # Validate inputs
-        if not group_id or not project_title:
-            flash('Group ID and Project Title are required', 'danger')
+        if not group_id:
+            flash('Group ID is required', 'danger')
             return render_template('add_project_and_group.html', students=students, supervisors=supervisors)
-        
-        # Validate supervisor is selected
+
+        if not selected_students:
+            flash('At least one student must be selected for the group', 'danger')
+            return render_template('add_project_and_group.html', students=students, supervisors=supervisors)
+
+        if not group_leader:
+            flash('A group leader must be selected', 'danger')
+            return render_template('add_project_and_group.html', students=students, supervisors=supervisors)
+
         if not supervisor_id:
-            flash('You must assign a supervisor to the project', 'danger')
+            flash('A supervisor must be selected for the group', 'danger')
             return render_template('add_project_and_group.html', students=students, supervisors=supervisors)
-        
+
+        if group_leader not in selected_students:
+            flash('The selected leader must be one of the chosen group members', 'danger')
+            return render_template('add_project_and_group.html', students=students, supervisors=supervisors)
+
         # Check if group_id already exists
         if StudentGroup.query.filter_by(group_id=group_id).first():
             flash(f'Group ID {group_id} already exists', 'danger')
             return render_template('add_project_and_group.html', students=students, supervisors=supervisors)
-        
-        # Verify supervisor exists
-        supervisor = User.query.get(int(supervisor_id))
-        if not supervisor:
-            flash('Selected supervisor does not exist', 'danger')
+
+        selected_supervisor = User.query.get(int(supervisor_id))
+        if not selected_supervisor or selected_supervisor.role not in ('supervisor', 'teacher'):
+            flash('Please select a valid supervisor', 'danger')
             return render_template('add_project_and_group.html', students=students, supervisors=supervisors)
-        
-        # Create new project group with selected supervisor
+
+        # Create new group with a placeholder title so the group is created without full project details
         group = StudentGroup(
             group_id=group_id,
-            project_title=project_title,
-            project_description=project_description,
-            supervisor_id=int(supervisor_id)
+            project_title='Pending Project Details',
+            project_description=None,
+            supervisor_id=selected_supervisor.id
         )
         
         db.session.add(group)
         db.session.commit()
         
-        # Add selected students to the group
+        # Add selected students to the group and mark the leader
+        leader_id = int(group_leader)
+        leader_user = User.query.get(leader_id)
         for student_id in selected_students:
             group_member = GroupMember(
                 user_id=int(student_id),
-                group_id=group.id
+                group_id=group.id,
+                is_leader=(int(student_id) == leader_id)
             )
             db.session.add(group_member)
         
         db.session.commit()
         
-        flash(f'Project "{project_title}" created and {len(selected_students)} students assigned successfully', 'success')
-        
-        if current_user.role == 'supervisor':
-            return redirect(url_for('dashboard'))
-        else:
-            return redirect(url_for('dashboard'))
+        leader_name = f'{leader_user.first_name} {leader_user.last_name}' if leader_user else 'selected student'
+        flash(f'Group "{group_id}" created with {len(selected_students)} students and leader {leader_name}', 'success')
+        return redirect(url_for('complete_project_details', group_id=group.id))
     
     return render_template('add_project_and_group.html', students=students, supervisors=supervisors)
+
+@app.route('/create_full_project', methods=['GET', 'POST'])
+@login_required
+def create_full_project():
+    """Add project details to an existing pending group"""
+    allowed_roles = {"admin", "supervisor", "cordinator", "teacher"}
+    if current_user.role not in allowed_roles:
+        flash("Access denied. Only admins, supervisors, and coordinators can create projects.", 'danger')
+        return redirect(url_for('index'))
+    
+    # Get only pending groups supervised by current user
+    pending_groups = StudentGroup.query.filter(
+        StudentGroup.supervisor_id == current_user.id,
+        StudentGroup.project_title == 'Pending Project Details'
+    ).all()
+    
+    # Get only actual supervisors (exclude coordinators) and exclude those with 2+ active projects
+    available_supervisors = []
+    all_supervisors = User.query.filter(User.role == 'supervisor').all()
+    
+    for supervisor in all_supervisors:
+        active_count = StudentGroup.query.filter(
+            StudentGroup.supervisor_id == supervisor.id,
+            StudentGroup.project_title != 'Pending Project Details'
+        ).count()
+        
+        # Only include if they have less than 2 active projects
+        if active_count < 2:
+            available_supervisors.append({
+                'supervisor': supervisor,
+                'active_count': active_count
+            })
+    
+    if request.method == 'POST':
+        group_id_str = request.form.get('group_id', '').strip()
+        project_title = request.form.get('project_title', '').strip()
+        project_description = request.form.get('project_description', '').strip()
+        major = request.form.get('major', '').strip()
+        supervisor_id_str = request.form.get('supervisor_id', '').strip()
+        
+        # Validate inputs
+        if not group_id_str:
+            flash('Group is required', 'danger')
+            return render_template('create_full_project.html', pending_groups=pending_groups, available_supervisors=available_supervisors)
+        
+        if not project_title:
+            flash('Project Title is required', 'danger')
+            return render_template('create_full_project.html', pending_groups=pending_groups, available_supervisors=available_supervisors)
+        
+        if not supervisor_id_str:
+            flash('Supervisor is required', 'danger')
+            return render_template('create_full_project.html', pending_groups=pending_groups, available_supervisors=available_supervisors)
+
+        # Get the group
+        group = StudentGroup.query.get(int(group_id_str))
+        if not group or group.supervisor_id != current_user.id or group.project_title != 'Pending Project Details':
+            flash('Invalid group selected', 'danger')
+            return render_template('create_full_project.html', pending_groups=pending_groups, available_supervisors=available_supervisors)
+        
+        # Get the supervisor and verify they can take on another project
+        supervisor = User.query.get(int(supervisor_id_str))
+        if not supervisor:
+            flash('Invalid supervisor selected', 'danger')
+            return render_template('create_full_project.html', pending_groups=pending_groups, available_supervisors=available_supervisors)
+        
+        # Count active projects for this supervisor
+        active_count = StudentGroup.query.filter(
+            StudentGroup.supervisor_id == supervisor.id,
+            StudentGroup.project_title != 'Pending Project Details'
+        ).count()
+        
+        if active_count >= 2:
+            flash(f'Supervisor {supervisor.first_name} {supervisor.last_name} is already assigned to 2 projects', 'danger')
+            return render_template('create_full_project.html', pending_groups=pending_groups, available_supervisors=available_supervisors)
+
+        # Update group with project details and assign new supervisor
+        group.project_title = project_title
+        group.project_description = project_description or None
+        group.supervisor_id = supervisor.id
+        
+        # Create or update ProjectDetails
+        details = ProjectDetails.query.filter_by(group_id=group.id).first()
+        if not details:
+            details = ProjectDetails(
+                group_id=group.id,
+                description=project_description or None,
+                major=major or None,
+                progress=0
+            )
+            db.session.add(details)
+        else:
+            details.description = project_description or details.description
+            details.major = major or details.major
+        
+        db.session.commit()
+        
+        flash(f'Project "{project_title}" for group "{group.group_id}" assigned to {supervisor.first_name} {supervisor.last_name}', 'success')
+        return redirect(url_for('dashboard_cordinator'))
+    
+    return render_template('create_full_project.html', pending_groups=pending_groups, available_supervisors=available_supervisors)
+
+@app.route('/complete_project_details/<int:group_id>', methods=['GET', 'POST'])
+@login_required
+def complete_project_details(group_id):
+    allowed_roles = {"admin", "supervisor", "cordinator", "teacher"}
+    if current_user.role not in allowed_roles:
+        flash("Access denied. Only admins, supervisors, coordinators, and teachers can complete project details.", 'danger')
+        return redirect(url_for('index'))
+
+    group = StudentGroup.query.get_or_404(group_id)
+
+    if current_user.role == 'cordinator' and group.supervisor_id != current_user.id:
+        flash("Access denied. You can only complete project details for groups you created.", 'danger')
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        project_title = request.form.get('project_title', '').strip()
+        project_description = request.form.get('project_description', '').strip()
+        major = request.form.get('major', '').strip()
+
+        if not project_title:
+            flash('Project title is required', 'danger')
+            return render_template('add_project_details.html', group=group)
+
+        group.project_title = project_title
+        group.project_description = project_description or None
+
+        details = ProjectDetails.query.filter_by(group_id=group.id).first()
+        if not details:
+            details = ProjectDetails(
+                group_id=group.id,
+                description=project_description or None,
+                major=major or None,
+                progress=0
+            )
+            db.session.add(details)
+        else:
+            details.description = project_description or details.description
+            details.major = major or details.major
+
+        db.session.commit()
+        flash(f'Project details for group "{group.group_id}" saved successfully.', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('add_project_details.html', group=group)
 
 @app.route('/supervisor/edit_project/<int:project_id>', methods=['POST'])
 @login_required
 def supervisor_edit_project(project_id):
-    if current_user.role != "supervisor":
+    if current_user.role not in ('supervisor', 'admin', 'cordinator', 'teacher'):
         flash("Access denied.")
         return redirect(url_for('index'))
     
     group = StudentGroup.query.get_or_404(project_id)
     
-    # Verify the supervisor owns this project
-    if group.supervisor_id != current_user.id:
+    # Coordinators may delete any group in their dashboard.
+    # Supervisors/teachers keep the ownership check.
+    if current_user.role in ('supervisor', 'teacher') and group.supervisor_id != current_user.id:
         flash("You don't have permission to edit this project.", 'danger')
         return redirect(url_for('dashboard'))
     
@@ -4147,14 +5954,15 @@ def supervisor_edit_project(project_id):
 @app.route('/supervisor/delete_project/<int:project_id>', methods=['POST'])
 @login_required
 def supervisor_delete_project(project_id):
-    if current_user.role != "supervisor":
+    allowed_roles = {"supervisor", "cordinator", "teacher"}
+    if current_user.role not in allowed_roles:
         flash("Access denied.")
         return redirect(url_for('index'))
     
     group = StudentGroup.query.get_or_404(project_id)
     
-    # Verify the supervisor owns this project
-    if group.supervisor_id != current_user.id:
+    # Coordinators may delete any group; supervisors/teachers keep ownership checks.
+    if current_user.role in ("supervisor", "teacher") and group.supervisor_id != current_user.id:
         flash("You don't have permission to delete this project.", 'danger')
         return redirect(url_for('dashboard'))
     
@@ -4164,6 +5972,7 @@ def supervisor_delete_project(project_id):
         # Delete associated members and remarks
         GroupMember.query.filter_by(group_id=group.id).delete()
         Remark.query.filter_by(group_id=group.id).delete()
+        ProjectDetails.query.filter_by(group_id=group.id).delete()
         
         # Delete the group project
         db.session.delete(group)
@@ -4174,7 +5983,7 @@ def supervisor_delete_project(project_id):
         db.session.rollback()
         flash(f'Error deleting group project: {str(e)}', 'danger')
     
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('dashboard_cordinator'))
 
 @app.route('/supervisor/assign_member', methods=['POST'])
 @login_required
@@ -4344,7 +6153,7 @@ def generate_user_summary():
     # Summary section
     all_users = User.query.all()
     students_count = len([u for u in all_users if u.role == 'student'])
-    faculty_count = len([u for u in all_users if u.role == 'faculty'])
+    cordinator_count = len([u for u in all_users if u.role == 'cordinator'])
     supervisors_count = len([u for u in all_users if u.role == 'supervisor'])
     admins_count = len([u for u in all_users if u.role == 'admin'])
     
@@ -4370,7 +6179,7 @@ def generate_user_summary():
     row += 1
     summary_data = [
         ('Students', students_count),
-        ('Faculty', faculty_count),
+        ('cordinator', cordinator_count),
         ('Supervisors', supervisors_count),
         ('Admins', admins_count),
         ('TOTAL', len(all_users))
@@ -5044,6 +6853,72 @@ def recreate_tables():
     db.create_all()
     print("All tables recreated.")
 
+def ensure_user_profile_columns():
+    """Add newly introduced profile columns on existing databases safely."""
+    required_columns = {
+        'department': 'VARCHAR(100)',
+        'section': 'VARCHAR(20)',
+        'batch': 'VARCHAR(20)',
+        'emp_id': 'VARCHAR(50)'
+    }
+
+    with db.engine.begin() as conn:
+        backend = db.engine.url.get_backend_name()
+        if backend == 'sqlite':
+            existing = {
+                row[1] for row in conn.execute(text('PRAGMA table_info("user")')).fetchall()
+            }
+            for col_name, col_type in required_columns.items():
+                if col_name not in existing:
+                    conn.execute(text(f'ALTER TABLE "user" ADD COLUMN {col_name} {col_type}'))
+        else:
+            for col_name, col_type in required_columns.items():
+                conn.execute(text(f'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS {col_name} {col_type}'))
+
+
+def ensure_project_proposal_columns():
+    """Add newly introduced project proposal columns on existing databases safely."""
+    required_columns = {
+        'updated_at': 'DATETIME',
+        'file_attachment': 'VARCHAR(300)',
+        'group_id': 'INTEGER',
+        'coordinator_id': 'INTEGER'
+    }
+
+    with db.engine.begin() as conn:
+        backend = db.engine.url.get_backend_name()
+        if backend == 'sqlite':
+            existing = {
+                row[1] for row in conn.execute(text('PRAGMA table_info("project_proposal")')).fetchall()
+            }
+            for col_name, col_type in required_columns.items():
+                if col_name not in existing:
+                    conn.execute(text(f'ALTER TABLE "project_proposal" ADD COLUMN {col_name} {col_type}'))
+        else:
+            for col_name, col_type in required_columns.items():
+                conn.execute(text(f'ALTER TABLE "project_proposal" ADD COLUMN IF NOT EXISTS {col_name} {col_type}'))
+
+
+def ensure_assigned_work_columns():
+    """Add newly introduced assigned work columns on existing databases safely."""
+    required_columns = {
+        'file_attachment': 'VARCHAR(300)',
+        'due_time': 'VARCHAR(8)'
+    }
+
+    with db.engine.begin() as conn:
+        backend = db.engine.url.get_backend_name()
+        if backend == 'sqlite':
+            existing = {
+                row[1] for row in conn.execute(text('PRAGMA table_info("assigned_work")')).fetchall()
+            }
+            for col_name, col_type in required_columns.items():
+                if col_name not in existing:
+                    conn.execute(text(f'ALTER TABLE "assigned_work" ADD COLUMN {col_name} {col_type}'))
+        else:
+            for col_name, col_type in required_columns.items():
+                conn.execute(text(f'ALTER TABLE "assigned_work" ADD COLUMN IF NOT EXISTS {col_name} {col_type}'))
+
 # Database initialization — always runs on startup to ensure tables exist
 with app.app_context():
     try:
@@ -5051,6 +6926,9 @@ with app.app_context():
         print(f"[STARTUP] Database URI: {_db_uri[:40]}...", flush=True)
         print(f"[STARTUP] DATABASE_URL env: {'SET' if os.environ.get('DATABASE_URL') else 'NOT SET'}", flush=True)
         db.create_all()
+        ensure_user_profile_columns()
+        ensure_project_proposal_columns()
+        ensure_assigned_work_columns()
         print("[STARTUP] Database tables created/verified.", flush=True)
         # Seed or update admin user
         _admin_email = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
@@ -5152,7 +7030,7 @@ if __name__ == '__main__':
             recreate_tables()
 
     debug = os.environ.get('FLASK_ENV') == 'development'
-    app.run(host='0.0.0.0', debug=debug)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=debug)
     
 # Register blueprints (must be after db/User definition to avoid circular imports)
 # On Vercel, this must run at module level, not just in __main__

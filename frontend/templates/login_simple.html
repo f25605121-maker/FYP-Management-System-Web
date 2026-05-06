@@ -37,7 +37,7 @@
         <div class="auth-form-wrap">
             <div class="auth-form-header">
                 <h2>Welcome Back</h2>
-                <p>Don't have an account? <a href="{{ url_for('signup') }}">Create one free</a></p>
+                <p>Contact your administrator to create an account</p>
             </div>
 
             <!-- Flash messages -->
@@ -59,7 +59,7 @@
                 <div class="field">
                     <label class="field-label" for="email">Email Address</label>
                     <div class="input-wrap">
-                        <input type="email" id="email" name="email" placeholder="you@example.com" required autofocus>
+                        <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="off" required autofocus>
                         <i class="bi bi-envelope icon"></i>
                     </div>
                     <div class="field-error"></div>
@@ -69,7 +69,7 @@
                 <div class="field">
                     <label class="field-label" for="password">Password</label>
                     <div class="input-wrap">
-                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                        <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="new-password" required>
                         <i class="bi bi-lock icon"></i>
                         <button type="button" class="pw-toggle" tabindex="-1"><i class="bi bi-eye"></i></button>
                     </div>
@@ -83,9 +83,9 @@
                         <select id="role" name="role" required>
                             <option value="" disabled selected>Select your role</option>
                             <option value="student">Student</option>
-                            <option value="faculty">Faculty / Teacher</option>
+                            <option value="cordinator">cordinator / Teacher</option>
                             <option value="supervisor">Supervisor</option>
-                            <option value="admin">Administrator</option>
+                            <option value="admin" id="admin-role-option">Administrator</option>
                         </select>
                         <i class="bi bi-person-badge icon"></i>
                     </div>
@@ -106,18 +106,9 @@
                     <span class="btn-text">Sign In</span>
                 </button>
 
-                <!-- Divider -->
-                <div class="auth-divider"><span>or continue with</span></div>
-
-                <!-- Social -->
-                <div class="social-row" style="display:flex; justify-content:center;">
-                    <button type="button" class="btn-social" onclick="socialLogin('google')">
-                        <span class="google-g"></span> Continue with Google
-                    </button>
-                </div>
-
+                
                 <p class="auth-bottom">
-                    New to FYP Management? <a href="{{ url_for('signup') }}">Create an account</a>
+                    Need an account? Contact your system administrator
                 </p>
             </form>
         </div>
@@ -125,5 +116,6 @@
 
     <!-- Shared Auth JS -->
     <script src="{{ url_for('static', filename='js/auth-modern.js') }}"></script>
-</body>
+    
+    </body>
 </html>

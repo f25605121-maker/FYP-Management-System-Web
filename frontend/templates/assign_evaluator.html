@@ -87,7 +87,7 @@
                     <h5 class="mb-0">Assign Project Evaluators</h5>
                 </div>
                 <div class="card-body">
-                    <p class="mb-3">Select one or more faculty to evaluate this project. These faculty will provide
+                    <p class="mb-3">Select one or more cordinator to evaluate this project. These cordinator will provide
                         feedback and grade the project throughout its lifecycle.</p>
 
                     <form method="POST" action="{{ url_for('project.assign_evaluator', proposal_id=proposal.id) }}">
@@ -95,9 +95,9 @@
                         <div class="mb-4">
                             <label class="form-label">Select Evaluator(s) <span class="text-danger">*</span></label>
 
-                            {% if faculty %}
+                            {% if cordinator %}
                             <div class="list-group">
-                                {% for teacher in faculty %}
+                                {% for teacher in cordinator %}
                                 <label class="list-group-item d-flex align-items-center">
                                     <input class="form-check-input me-3" type="checkbox" name="evaluator_ids"
                                         value="{{ teacher.id }}">
@@ -110,13 +110,13 @@
                             </div>
                             {% else %}
                             <div class="alert alert-warning">
-                                No faculty are available in the system. Please add faculty first.
+                                No cordinator are available in the system. Please add cordinator first.
                             </div>
                             {% endif %}
                         </div>
 
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary" {% if not faculty %}disabled{% endif %}>
+                            <button type="submit" class="btn btn-primary" {% if not cordinator %}disabled{% endif %}>
                                 <i class="bi bi-check-circle me-1"></i>Confirm Assignment
                             </button>
                         </div>

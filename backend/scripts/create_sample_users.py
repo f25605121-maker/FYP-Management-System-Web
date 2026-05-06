@@ -5,7 +5,7 @@ with app.app_context():
         ('admin@example.com', 'admin123', 'Admin', 'User', 'admin'),
         ('student@example.com', 'student123', 'Sarah', 'Johnson', 'student'),
         ('supervisor@example.com', 'supervisor123', 'David', 'Johnson', 'supervisor'),
-        ('teacher@example.com', 'teacher123', 'John', 'Smith', 'faculty'),
+        ('teacher@example.com', 'teacher123', 'John', 'Smith', 'cordinator'),
     ]
     
     for email, password, first_name, last_name, role in users:

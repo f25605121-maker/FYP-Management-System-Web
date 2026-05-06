@@ -28,7 +28,7 @@ def delete_test_users():
             'supervisor2@example.com',
             'supervisor3@example.com',
             'supervisor4@example.com',
-            # Teacher/Faculty
+            # Teacher/cordinator
             'teacher@example.com',
         ]
         

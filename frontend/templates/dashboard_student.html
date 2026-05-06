@@ -30,6 +30,279 @@
         }
         .quick-action-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--primary-300); color: var(--primary-700); }
         .quick-action-card i { font-size: 2.5rem; color: var(--primary-600); margin-bottom: 1rem; }
+        .stat-card {
+            background: white; border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm); border: 1px solid rgba(150, 150, 170, 0.12);
+            transition: transform 0.2s ease;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-card .stat-value { font-size: 2rem; font-weight: 700; margin-top: 0.75rem; }
+        .stat-card .stat-label { color: #6c757d; margin-top: 0.25rem; }
+        .mini-card { background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid rgba(150, 150, 170, 0.12); }
+        .mini-card .card-body { padding: 1.25rem; }
+        .dashboard-pill { border-radius: 999px; padding: .35rem .85rem; font-size: .82rem; }
+        .dashboard-progress-ring {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.9) 60%, transparent 61%), conic-gradient(var(--primary-600) {{ project_progress }}%, #e9ecef 0);
+            display: grid;
+            place-items: center;
+            color: #343a40;
+            font-weight: 700;
+            position: relative;
+        }
+        .dashboard-progress-ring::before {
+            content: '';
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: white;
+            position: absolute;
+        }
+        .dashboard-progress-ring span {
+            position: relative;
+            z-index: 1;
+            font-size: 1.75rem;
+        }
+        .project-summary-card, .document-card, .remark-card {
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(150, 150, 170, 0.12);
+            box-shadow: var(--shadow-sm);
+            background: white;
+        }
+        .project-summary-card .card-body,
+        .document-card .card-body,
+        .remark-card .card-body {
+            padding: 1.5rem;
+        }
+        .project-metric {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-radius: var(--radius-lg);
+            background: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+        .project-metric h6 {
+            margin-bottom: 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .project-metric span {
+            font-weight: 700;
+            color: #343a40;
+        }
+        .member-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 0.85rem;
+            border-radius: 999px;
+            background: #eff2ff;
+            color: #1f3b88;
+            font-size: 0.88rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .timeline-step {
+            position: relative;
+            padding-left: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .timeline-step::before {
+            content: '';
+            position: absolute;
+            left: 0.6rem;
+            top: 0.35rem;
+            width: 0.9rem;
+            height: 0.9rem;
+            border-radius: 50%;
+            background: #dee2e6;
+        }
+        .timeline-step.completed::before {
+            background: #0d6efd;
+        }
+        .timeline-step .step-title {
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+        .timeline-step .step-meta {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .timeline-step.completed .step-title {
+            color: #0d6efd;
+        }
+        .timeline-step:last-child { margin-bottom: 0; }
+        .remarks-summary-card {
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(150, 150, 170, 0.14);
+            box-shadow: var(--shadow-sm);
+            background: white;
+            min-height: 140px;
+        }
+        .remarks-summary-card .card-body {
+            padding: 1.35rem;
+        }
+        .remarks-summary-card .metric-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 15px;
+            display: grid;
+            place-items: center;
+            background: rgba(13, 110, 253, 0.08);
+            color: #0d6efd;
+            font-size: 1.4rem;
+        }
+        .remark-item {
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .remark-item:hover {
+            background: #f8f9fa;
+            transform: translateX(1px);
+        }
+        .remark-info-badge {
+            min-width: 130px;
+        }
+        .remark-list-search {
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(16, 24, 40, 0.04);
+        }
+        .submission-card {
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(150, 150, 170, 0.12);
+            box-shadow: var(--shadow-sm);
+            background: white;
+        }
+        .submission-card .card-body {
+            padding: 1.75rem;
+        }
+        .upload-dropzone {
+            border: 2px dashed #cfe2ff;
+            border-radius: 1rem;
+            min-height: 180px;
+            display: grid;
+            place-items: center;
+            background: #f8fbff;
+            transition: background 0.2s ease, border-color 0.2s ease;
+            text-align: center;
+            cursor: pointer;
+        }
+        .upload-dropzone.dragover {
+            background: rgba(13, 110, 253, 0.05);
+            border-color: #0d6efd;
+        }
+        .upload-dropzone i {
+            font-size: 2rem;
+            color: #0d6efd;
+        }
+        .upload-dropzone .dropzone-text {
+            margin-top: 1rem;
+            color: #495057;
+        }
+        .upload-dropzone .dropzone-button {
+            margin-top: 0.75rem;
+        }
+        .submission-guidelines {
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(150, 150, 170, 0.12);
+            background: #f8fbff;
+        }
+        .submission-guidelines .card-body {
+            padding: 1.5rem;
+        }
+        .submission-guidelines .list-group-item {
+            border: 0;
+            padding-left: 0;
+            padding-right: 0;
+            color: #495057;
+        }
+        .submission-filter-bar {
+            border-radius: 1rem;
+            border: 1px solid rgba(150, 150, 170, 0.12);
+            box-shadow: 0 10px 30px rgba(16, 24, 40, 0.04);
+            background: white;
+        }
+        .submission-filter-bar .form-select,
+        .submission-filter-bar .btn {
+            min-height: 48px;
+        }
+        .submission-status-pill {
+            min-width: 110px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .submission-table-wrapper {
+            overflow-x: auto;
+        }
+        .assigned-summary-card {
+            border-radius: 1rem;
+            border: 1px solid rgba(150, 150, 170, 0.15);
+            box-shadow: 0 10px 24px rgba(16, 24, 40, 0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .assigned-summary-card:hover {
+            transform: translateY(-2px);
+        }
+        .assigned-work-filter-bar {
+            border-radius: 1rem;
+            border: 1px solid rgba(150, 150, 170, 0.12);
+            background: #ffffff;
+            box-shadow: 0 10px 30px rgba(16, 24, 40, 0.04);
+            padding: 1.25rem;
+        }
+        .assigned-work-filter-bar .form-control,
+        .assigned-work-filter-bar .form-select {
+            min-height: 48px;
+        }
+        .task-chip {
+            border-radius: 999px;
+            padding: 0.45rem 0.9rem;
+            font-size: 0.78rem;
+            letter-spacing: 0.02em;
+        }
+        .task-chip.urgent { background: rgba(220, 53, 69, 0.12); color: #bb2d3b; }
+        .task-chip.high { background: rgba(255, 193, 7, 0.15); color: #856404; }
+        .task-chip.medium { background: rgba(13, 110, 253, 0.12); color: #0d6efd; }
+        .task-chip.low { background: rgba(108, 117, 125, 0.12); color: #495057; }
+        .status-pill {
+            border-radius: 999px;
+            padding: 0.4rem 0.85rem;
+            font-size: 0.78rem;
+        }
+        .task-icon {
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+        }
+        .assigned-work-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        /* Real-time update visual feedback */
+        .last-updated-time {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-top: 0.5rem;
+            transition: opacity 1s ease-out;
+        }
+        .highlight-update {
+            animation: highlightPulse 2s ease-out;
+            background-color: rgba(13, 110, 253, 0.1) !important;
+        }
+        @keyframes highlightPulse {
+            0% { background-color: rgba(13, 110, 253, 0.1); }
+            50% { background-color: rgba(13, 110, 253, 0.2); }
+            100% { background-color: transparent; }
+        }
+        
         @media (max-width: 768px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
             .quick-actions { grid-template-columns: 1fr; }
@@ -39,6 +312,15 @@
         }
     </style>
 </head>
+
+<body>
+    {% set today_schedules = today_schedules if today_schedules is defined else [] %}
+    {% set tomorrow_schedules = tomorrow_schedules if tomorrow_schedules is defined else [] %}
+    {% set upcoming_deadlines = upcoming_deadlines if upcoming_deadlines is defined else [] %}
+    {% set project_progress = project_progress if project_progress is defined else 0 %}
+    {% set all_assigned_works = all_assigned_works if all_assigned_works is defined else [] %}
+    {% set all_vivas = all_vivas if all_vivas is defined else [] %}
+    {% set student_group = student_group if student_group is defined else None %}
 
 <body>
     <!-- Modern Navbar -->
@@ -69,6 +351,19 @@
         </div>
     </nav>
 
+    <!-- Toast Notifications Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        <div id="updateToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    Dashboard updated successfully
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
     <!-- Dashboard Header -->
     <div class="dashboard-header">
         <div class="container-fluid">
@@ -76,6 +371,14 @@
                 <div class="col-md-8">
                     <h1 class="welcome-text">Welcome back, {{ current_user.first_name }}! 👋</h1>
                     <p class="subtitle-text">Track your FYP progress and schedule</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="d-flex flex-column align-items-end">
+                        <div class="text-white-50 small mb-1">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Auto-refresh enabled
+                        </div>
+                        <div class="last-updated-time text-white-50 small"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -102,7 +405,13 @@
                                 <i class="bi bi-kanban me-3"></i>My Project
                             </a>
                         </li>
-
+                        {% if is_group_leader %}
+                        <li class="nav-item">
+                            <a href="#project-proposal" class="nav-link section-link" data-section="project-proposal">
+                                <i class="bi bi-file-text me-3"></i>Project Proposal
+                            </a>
+                        </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a href="#feedback" class="nav-link section-link" data-section="feedback">
                                 <i class="bi bi-chat-left-text me-3"></i>Supervisor Remarks
@@ -145,88 +454,203 @@
 
                 <!-- Dashboard Section -->
                 <div id="dashboard" class="content-section active">
-                    <!-- Stats Grid -->
-                    <div class="stats-grid">
-                        <div class="stat-card primary">
-                            <i class="bi bi-percent"></i>
-                            <div class="stat-value">{{ project_progress }}%</div>
-                            <div class="stat-label">Project Progress</div>
-                        </div>
-                        <div class="stat-card success">
-                            <i class="bi bi-calendar-day"></i>
-                            <div class="stat-value">{{ today_schedules|length }}</div>
-                            <div class="stat-label">Today's Classes</div>
-                        </div>
-                        <div class="stat-card warning">
-                            <i class="bi bi-list-task"></i>
-                            <div class="stat-value">{{ assigned_works|length }}</div>
-                            <div class="stat-label">Assigned Tasks</div>
-                        </div>
-                        <div class="stat-card danger">
-                            <i class="bi bi-chat-left-text"></i>
-                            <div class="stat-value">{{ remarks|length }}</div>
-                            <div class="stat-label">Remarks Received</div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Actions -->
-                    <div class="quick-actions">
-                        <a href="#" class="quick-action-card section-link" data-section="schedule">
-                            <i class="bi bi-calendar-week"></i>
-                            <h5>Schedule</h5>
-                            <p>View today's classes</p>
-                        </a>
-                        <a href="#" class="quick-action-card section-link" data-section="my-project">
-                            <i class="bi bi-kanban"></i>
-                            <h5>My Project</h5>
-                            <p>View FYP details</p>
-                        </a>
-                        <a href="#" class="quick-action-card section-link" data-section="assigned-work">
-                            <i class="bi bi-list-task"></i>
-                            <h5>Assigned Work</h5>
-                            <p>Track your tasks</p>
-                        </a>
-                        <a href="#" class="quick-action-card section-link" data-section="feedback">
-                            <i class="bi bi-chat-quote"></i>
-                            <h5>Supervisor Remarks</h5>
-                            <p>View supervisor remarks</p>
-                        </a>
-                    </div>
-
-                    <!-- Profile Info Card -->
-                    {% if current_user.profile %}
-                    <div class="card mb-4">
-                        <div class="card-header bg-white">
-                            <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Profile Information</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>Program:</strong> 
-                                        {% if current_user.profile.program == 'CS' %}
-                                            Computer Science (CS)
-                                        {% elif current_user.profile.program == 'IT' %}
-                                            Information Technology (IT)
-                                        {% elif current_user.profile.program == 'AI' %}
-                                            Artificial Intelligence (AI)
-                                        {% else %}
-                                            {{ current_user.profile.program }}
-                                        {% endif %}
-                                    </p>
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <div class="row g-3">
+                                <div class="col-sm-6 col-xl-3">
+                                    <div class="stat-card">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="p-3 rounded-3 bg-primary bg-opacity-10">
+                                                <i class="bi bi-percent fs-3 text-primary"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-uppercase text-muted small">Project Progress</div>
+                                                <div class="stat-value">{{ project_progress }}%</div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: {{ project_progress }}%;" aria-valuenow="{{ project_progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <p><strong>Semester:</strong> 
-                                        {% if current_user.profile.semester %}
-                                            {{ current_user.profile.semester }}{% if current_user.profile.semester == 1 %}st{% elif current_user.profile.semester == 2 %}nd{% elif current_user.profile.semester == 3 %}rd{% else %}th{% endif %} Semester
+                                <div class="col-sm-6 col-xl-3">
+                                    <div class="stat-card">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="p-3 rounded-3 bg-success bg-opacity-10">
+                                                <i class="bi bi-calendar-day fs-3 text-success"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-uppercase text-muted small">Today's Classes</div>
+                                                <div class="stat-value">{{ today_schedules|length }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-xl-3">
+                                    <div class="stat-card">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="p-3 rounded-3 bg-info bg-opacity-10">
+                                                <i class="bi bi-list-task fs-3 text-info"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-uppercase text-muted small">Assigned Tasks</div>
+                                                <div class="stat-value">{{ assigned_works|length }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-xl-3">
+                                    <div class="stat-card">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="p-3 rounded-3 bg-danger bg-opacity-10">
+                                                <i class="bi bi-chat-left-text fs-3 text-danger"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-uppercase text-muted small">Remarks Received</div>
+                                                <div class="stat-value">{{ remarks|length }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-8">
+                            <div class="row g-4">
+                                <div class="col-12">
+                                    <div class="card h-100">
+                                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Today's Schedule</h5>
+                                            <a href="{{ url_for('student_schedule') }}" class="btn btn-sm btn-outline-primary">View Full Schedule</a>
+                                        </div>
+                                        <div class="card-body">
+                                            {% if today_schedules %}
+                                            <div class="list-group list-group-flush">
+                                                {% for schedule in today_schedules %}
+                                                <div class="list-group-item px-0 py-3">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <div>
+                                                            <h6 class="mb-1">{{ schedule.subject }}</h6>
+                                                            <p class="mb-1 text-muted">{{ schedule.time }} · {{ schedule.class_name }}</p>
+                                                        </div>
+                                                        <span class="badge bg-{{ 'success' if schedule.status == 'Ongoing' else 'info' if schedule.status == 'Upcoming' else 'secondary' }} rounded-pill">{{ schedule.status }}</span>
+                                                    </div>
+                                                    <p class="mb-1"><i class="bi bi-geo-alt me-1"></i>{{ schedule.room }}</p>
+                                                    <small class="text-muted"><i class="bi bi-person me-1"></i>{{ schedule.teacher }}</small>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            {% else %}
+                                            <div class="text-center py-5 text-muted">
+                                                <i class="bi bi-calendar-x fs-1"></i>
+                                                <p class="mt-3 mb-0">No classes scheduled for today.</p>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-4">
+                            <div class="card mb-4">
+                                <div class="card-header bg-white">
+                                    <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Project Progress</h5>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="progress-circle" style="--percentage: {{ project_progress }};"><span>{{ project_progress }}%</span></div>
+                                    <h4 class="mt-3 mb-1">Overall Progress</h4>
+                                    <p class="text-muted mb-3">Based on your group's current updates.</p>
+                                    <div class="progress" style="height: 16px; border-radius: 12px; overflow: hidden;">
+                                        <div class="progress-bar {% if project_progress >= 75 %}bg-success{% elif project_progress >= 40 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width: {{ project_progress }}%" aria-valuenow="{{ project_progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card h-100">
+                                <div class="card-header bg-white">
+                                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Upcoming Deadlines</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if upcoming_deadlines %}
+                                    <ul class="list-group list-group-flush">
+                                        {% for deadline in upcoming_deadlines %}
+                                        <li class="list-group-item px-0 py-3">
+                                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                                <div>
+                                                    <h6 class="mb-1">{{ deadline.title }}</h6>
+                                                    <small class="text-muted">{{ deadline.due_date }} · {{ deadline.work_type }}</small>
+                                                </div>
+                                                <span class="badge {% if deadline.days_left < 0 %}bg-danger{% elif deadline.days_left <= 5 %}bg-warning text-dark{% else %}bg-success{% endif %} rounded-pill">{{ deadline.label }}</span>
+                                            </div>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% else %}
+                                    <div class="text-center py-5 text-muted">
+                                        <i class="bi bi-clock fs-1"></i>
+                                        <p class="mt-3 mb-0">No upcoming deadlines found.</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-white">
+                                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>Project Group</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if student_group %}
+                                        <p class="mb-2"><strong>Group ID:</strong> <span class="badge bg-primary">{{ student_group.group_id }}</span></p>
+                                        <p class="mb-2"><strong>Project Title:</strong><br>{{ student_group.project_title or 'Not assigned yet' }}</p>
+                                        {% if supervisor %}
+                                            <p class="mb-2"><strong>Supervisor:</strong><br>{{ supervisor.first_name }} {{ supervisor.last_name }}</p>
+                                            <p class="text-muted mb-0">{{ supervisor.email }}</p>
                                         {% else %}
-                                            Not specified
+                                            <p class="text-muted">No supervisor assigned yet.</p>
                                         {% endif %}
-                                    </p>
+                                    {% else %}
+                                        <div class="text-center py-4 text-muted">
+                                            <i class="bi bi-people-fill fs-1"></i>
+                                            <p class="mt-3 mb-0">You are not assigned to a project group yet.</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-8">
+                            <div class="card h-100">
+                                <div class="card-header bg-white">
+                                    <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Recent Activity</h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    {% if recent_activity %}
+                                    <ul class="list-group list-group-flush activity-list">
+                                        {% for item in recent_activity %}
+                                        <li class="list-group-item px-3 py-3">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <span class="badge bg-light text-primary rounded-circle p-3"><i class="bi {{ item.icon }}"></i></span>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-1">{{ item.title }}</h6>
+                                                    <p class="mb-1 text-muted">{{ item.message }}</p>
+                                                    <small class="text-muted">{{ item.details }}</small>
+                                                </div>
+                                                <small class="text-muted">{{ item.timestamp.strftime('%d %b %Y') }}</small>
+                                            </div>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% else %}
+                                        <div class="text-center py-5 text-muted">
+                                            <i class="bi bi-activity fs-1"></i>
+                                            <p class="mt-3 mb-0">No recent activity yet.</p>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                     </div>
-                    {% endif %}
                 </div>
 
                 <!-- Schedule Section -->
@@ -299,29 +723,142 @@
                 <div id="my-project" class="content-section">
                     <h2 class="mb-4">My FYP Project</h2>
                     {% if student_group %}
-                        <div class="card mb-4">
-                            <div class="card-header bg-white">
-                                <h5 class="mb-0"><i class="bi bi-kanban me-2"></i>{{ student_group.project_title }}</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row mb-3">
+                        <div class="row g-4 mb-4">
+                            <div class="col-xl-8">
+                                <div class="project-summary-card mb-4">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-3">
+                                            <div>
+                                                <h5 class="mb-1"><i class="bi bi-kanban me-2"></i>{{ student_group.project_title }}</h5>
+                                                <p class="text-muted mb-0">{{ project_description or 'No project description available yet.' }}</p>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="badge bg-primary">Group {{ student_group.group_id }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="row align-items-center gy-3">
+                                            <div class="col-md-5">
+                                                <div class="dashboard-progress-ring mb-3">
+                                                    <span>{{ project_progress }}%</span>
+                                                </div>
+                                                <p class="text-center text-muted mb-0">Completion progress</p>
+                                            </div>
+                                            <div class="col-md-7">
+                                                <div class="project-metric">
+                                                    <h6>Supervisor</h6>
+                                                    <span>{{ supervisor.first_name if supervisor else 'TBD' }} {{ supervisor.last_name if supervisor else '' }}</span>
+                                                </div>
+                                                <div class="project-metric">
+                                                    <h6>Started On</h6>
+                                                    <span>{{ project_started_on or 'N/A' }}</span>
+                                                </div>
+                                                <div class="project-metric">
+                                                    <h6>Team Members</h6>
+                                                    <span>{{ group_members|length }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-4">
                                     <div class="col-md-6">
-                                        <p><strong>Group ID:</strong> <span class="badge bg-primary">{{ student_group.group_id }}</span></p>
+                                        <div class="project-summary-card">
+                                            <div class="card-body">
+                                                <h6 class="mb-3">Project Milestones</h6>
+                                                {% if project_milestones %}
+                                                    {% for milestone in project_milestones[:4] %}
+                                                        <div class="timeline-step {% if milestone.status in ['Completed', 'Approved'] %}completed{% endif %}">
+                                                            <div class="step-title">{{ milestone.title }}</div>
+                                                            <div class="step-meta">Due {{ milestone.due_date.strftime('%d %b %Y') if milestone.due_date else 'TBD' }} · {{ milestone.status }}</div>
+                                                        </div>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <p class="text-muted mb-0">No milestones have been assigned yet.</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="col-md-6">
-                                        {% if supervisor %}
-                                            <p><strong>Supervisor:</strong> {{ supervisor.first_name }} {{ supervisor.last_name }}</p>
-                                            <p class="text-muted">{{ supervisor.email }}</p>
+                                        <div class="project-summary-card">
+                                            <div class="card-body">
+                                                <h6 class="mb-3">Team Members</h6>
+                                                {% if group_members %}
+                                                    {% for member in group_members %}
+                                                        <div class="member-pill">
+                                                            <i class="bi bi-person-circle"></i>
+                                                            {{ member.user.first_name }} {{ member.user.last_name }}
+                                                            {% if member.is_leader %}
+                                                                <span class="badge bg-info text-dark ms-2">Leader</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <p class="text-muted mb-0">No members have been added yet.</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-4">
+                                <div class="document-card mb-4">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <h6 class="mb-0">Quick Submission</h6>
+                                            <span class="badge bg-success">Ready</span>
+                                        </div>
+                                        <p class="text-muted">Upload your latest draft or final deliverable directly from the dashboard.</p>
+                                        <div class="border rounded-3 p-3 mb-3 text-center" style="background: #f8f9fa;">
+                                            <i class="bi bi-cloud-upload fs-2 text-primary"></i>
+                                            <p class="mb-0 mt-2">Drag and drop files or click to browse</p>
+                                        </div>
+                                        <a href="#" class="btn btn-outline-primary w-100">
+                                            <i class="bi bi-folder2-open me-2"></i>View Submission History
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="remark-card mb-4">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <h6 class="mb-0">Latest Remark</h6>
+                                            <span class="badge bg-secondary">Feedback</span>
+                                        </div>
+                                        {% if latest_remark %}
+                                            <p class="mb-2"><strong>{{ latest_remark.teacher.first_name if latest_remark.teacher else 'Supervisor' }}</strong> · {{ latest_remark.timestamp.strftime('%d %b %Y') }}</p>
+                                            <p class="text-muted">{{ latest_remark.content }}</p>
                                         {% else %}
-                                            <p class="text-muted">No supervisor assigned yet.</p>
+                                            <p class="text-muted mb-0">No new remarks yet.</p>
                                         {% endif %}
                                     </div>
                                 </div>
-                                <h6>Project Progress</h6>
-                                <div class="progress mb-2" style="height: 20px;">
-                                    <div class="progress-bar {% if project_progress >= 75 %}bg-success{% elif project_progress >= 40 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width: {{ project_progress }}%" aria-valuenow="{{ project_progress }}" aria-valuemin="0" aria-valuemax="100">{{ project_progress }}%</div>
+
+                                <div class="document-card">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <h6 class="mb-0">Recent Documents</h6>
+                                            <span class="badge bg-warning text-dark">{{ project_documents|length }}</span>
+                                        </div>
+                                        {% if project_documents %}
+                                            <ul class="list-group list-group-flush">
+                                                {% for doc in project_documents %}
+                                                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-0">
+                                                        <div>
+                                                            <strong>{{ doc.title }}</strong>
+                                                            <div class="text-muted small">{{ doc.submission_type }} · {{ doc.file_size_display }}</div>
+                                                        </div>
+                                                        <i class="bi bi-file-earmark-arrow-up fs-5 text-primary"></i>
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% else %}
+                                            <p class="text-muted mb-0">No recent uploads yet.</p>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                <small class="text-muted">{{ project_progress }}% complete — set by your supervisor</small>
                             </div>
                         </div>
                     {% else %}
@@ -331,40 +868,219 @@
                     {% endif %}
                 </div>
 
+                <!-- Project Proposal Section (Only for Group Leaders) -->
+                {% if is_group_leader %}
+                <div id="project-proposal" class="content-section">
+                    <h2 class="mb-4">Project Proposal</h2>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-file-earmark-plus me-2"></i>Submit Project Proposal</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="proposalForm" enctype="multipart/form-data" method="POST" action="{{ url_for('submit_project_proposal') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="mb-3">
+                                    <label for="proposalTitle" class="form-label">Proposal Title *</label>
+                                    <input type="text" class="form-control" id="proposalTitle" name="title" placeholder="Enter project proposal title" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="proposalDescription" class="form-label">Project Description *</label>
+                                    <textarea class="form-control" id="proposalDescription" name="description" rows="5" placeholder="Describe your project proposal in detail..." required></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="proposalMajor" class="form-label">Major/Category *</label>
+                                    <select class="form-select" id="proposalMajor" name="major" required>
+                                        <option value="">Select a category...</option>
+                                        <option value="AI/ML">AI/ML</option>
+                                        <option value="Cyber Security">Cyber Security</option>
+                                        <option value="Blockchain">Blockchain</option>
+                                        <option value="Web Development">Web Development</option>
+                                        <option value="Mobile Development">Mobile Development</option>
+                                        <option value="IoT">IoT</option>
+                                        <option value="Cloud Computing">Cloud Computing</option>
+                                        <option value="Data Science">Data Science</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="proposalFile" class="form-label">Attach Project Document (Optional)</label>
+                                    <input type="file" class="form-control" id="proposalFile" name="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.txt">
+                                    <small class="text-muted">Allowed formats: PDF, DOC, DOCX, PPT, PPTX, ZIP, TXT (Max 16MB)</small>
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-send me-2"></i>Submit Proposal for Approval
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Existing Proposals -->
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Your Proposals</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="proposalsContainer">
+                                <p class="text-muted"><i class="bi bi-hourglass me-2"></i>Loading proposals...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Feedback Section -->
                 <div id="feedback" class="content-section">
                     <h2 class="mb-4">Supervisor Remarks</h2>
 
-                    {% if remarks %}
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <span class="badge bg-primary fs-6 me-2">{{ remarks|length }}</span>
-                                <span class="text-muted">Total Remarks Received</span>
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6 col-xl-3">
+                            <div class="card remarks-summary-card h-100">
+                                <div class="card-body d-flex align-items-start gap-3">
+                                    <div class="metric-icon bg-primary bg-opacity-10 text-primary">
+                                        <i class="bi bi-chat-left-text"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="mb-1">{{ total_remarks }}</h3>
+                                        <p class="text-muted mb-0">Total Remarks</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                        <div class="col-sm-6 col-xl-3">
+                            <div class="card remarks-summary-card h-100">
+                                <div class="card-body d-flex align-items-start gap-3">
+                                    <div class="metric-icon bg-success bg-opacity-10 text-success">
+                                        <i class="bi bi-hand-thumbs-up"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="mb-1">{{ positive_remarks_count }}</h3>
+                                        <p class="text-muted mb-0">Positive Remarks</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-xl-3">
+                            <div class="card remarks-summary-card h-100">
+                                <div class="card-body d-flex align-items-start gap-3">
+                                    <div class="metric-icon bg-warning bg-opacity-10 text-warning">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="mb-1">{{ suggestion_remarks_count }}</h3>
+                                        <p class="text-muted mb-0">Suggestions</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-xl-3">
+                            <div class="card remarks-summary-card h-100">
+                                <div class="card-body d-flex align-items-start gap-3">
+                                    <div class="metric-icon bg-info bg-opacity-10 text-info">
+                                        <i class="bi bi-file-earmark-text"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="mb-1">{{ submission_remarks_count }}</h3>
+                                        <p class="text-muted mb-0">Remarks on Submissions</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
+                    <div class="card mb-4 remark-list-search">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-center">
+                                <div class="col-md-4">
+                                    <label for="remarkFilter" class="form-label small mb-1">Filter Remarks</label>
+                                    <select id="remarkFilter" class="form-select">
+                                        <option value="All">All Remarks</option>
+                                        <option value="Positive">Positive</option>
+                                        <option value="Suggestion">Suggestions</option>
+                                        <option value="Submission">Submission Remarks</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label small mb-1 d-none d-md-block">Search</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                                        <input id="remarkSearch" type="search" class="form-control border-start-0" placeholder="Search remarks...">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if student_remarks %}
                         <div class="card">
                             <div class="card-body p-0">
                                 <ul class="list-group list-group-flush">
-                                    {% for remark in remarks %}
-                                        <li class="list-group-item py-3">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <div>
-                                                    {% if remark.student_id %}
-                                                    <span class="badge bg-warning text-dark me-2"><i class="bi bi-person-fill me-1"></i>Sent to You</span>
-                                                    {% else %}
-                                                    <span class="badge bg-info me-2"><i class="bi bi-people-fill me-1"></i>Sent to Group</span>
-                                                    {% endif %}
-                                                    <small class="text-muted">
-                                                        <i class="bi bi-person me-1"></i>{{ remark.teacher.first_name }} {{ remark.teacher.last_name }}
-                                                    </small>
+                                    {% for remark in student_remarks %}
+                                        <li class="list-group-item remark-item px-3 py-4" data-remark-type="{{ 'Submission' if remark.is_submission_remark else remark.remark_type }}" data-search-text="{{ remark.search_text|e }}">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width:42px; height:42px; font-weight:700;">
+                                                    {{ remark.teacher_name[:1] }}
                                                 </div>
-                                                <small class="text-muted">
-                                                    <i class="bi bi-clock me-1"></i>{{ remark.timestamp.strftime('%b %d, %Y at %H:%M') }}
-                                                </small>
-                                            </div>
-                                            <div class="p-3 bg-light rounded">
-                                                <p class="mb-0">{{ remark.content }}</p>
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 align-items-start">
+                                                        <div>
+                                                            <h6 class="mb-1">{{ remark.teacher_name }}</h6>
+                                                            <span class="badge bg-{{ remark.badge_class }} text-uppercase small remark-info-badge">{{ remark.badge_label }}</span>
+                                                        </div>
+                                                        <small class="text-muted">{{ remark.timestamp.strftime('%d %b %Y, %I:%M %p') }}</small>
+                                                    </div>
+                                                    <p class="mb-3 text-muted">{{ remark.content }}</p>
+                                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                                        <span class="badge bg-light text-dark">{{ remark.remarks_to }}</span>
+                                                        {% if remark.is_submission_remark %}
+                                                            <a href="#" class="btn btn-sm btn-outline-primary">View Submission</a>
+                                                        {% endif %}
+                                                        <button class="btn btn-sm btn-outline-secondary reply-btn" data-remark-id="{{ remark.id }}">
+                                                            <i class="bi bi-reply me-1"></i>Reply
+                                                        </button>
+                                                    </div>
+                                                    
+                                                    <!-- Responses Section -->
+                                                    {% if remark.responses %}
+                                                        <div class="responses-section mt-3">
+                                                            <h6 class="text-muted small mb-2">Responses:</h6>
+                                                            {% for response in remark.responses %}
+                                                                <div class="response-item ms-4 mb-2 p-2 bg-light rounded">
+                                                                    <div class="d-flex justify-content-between align-items-start">
+                                                                        <small class="fw-bold">{{ response.student_name }}</small>
+                                                                        <small class="text-muted">{{ response.timestamp.strftime('%d %b %Y, %I:%M %p') }}</small>
+                                                                    </div>
+                                                                    <p class="mb-0 small">{{ response.content }}</p>
+                                                                </div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% endif %}
+                                                    
+                                                    <!-- Reply Form (hidden by default) -->
+                                                    <div class="reply-form mt-3 d-none" id="reply-form-{{ remark.id }}">
+                                                        <form action="{{ url_for('add_remark_response') }}" method="POST">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                            <input type="hidden" name="remark_id" value="{{ remark.id }}">
+                                                            <div class="mb-2">
+                                                                <textarea class="form-control form-control-sm" name="content" rows="2" placeholder="Write your response..." required></textarea>
+                                                            </div>
+                                                            <div class="d-flex gap-2">
+                                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                                    <i class="bi bi-send me-1"></i>Send Response
+                                                                </button>
+                                                                <button type="button" class="btn btn-outline-secondary btn-sm cancel-reply" data-remark-id="{{ remark.id }}">
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </li>
                                     {% endfor %}
@@ -373,9 +1089,9 @@
                         </div>
                     {% else %}
                         <div class="text-center py-5 text-muted">
-                            <i class="bi bi-chat-square-text" style="font-size: 3rem;"></i>
-                            <p class="mt-3">No remarks received yet.</p>
-                            <p class="small">Your supervisor's remarks will appear here.</p>
+                            <i class="bi bi-chat-square-text fs-1"></i>
+                            <p class="mt-3 mb-1">No remarks received yet.</p>
+                            <p class="small">Your supervisor's remarks will appear here when available.</p>
                         </div>
                     {% endif %}
                 </div>
@@ -385,74 +1101,128 @@
                     <h2 class="mb-4">Submit Your Work</h2>
 
                     {% if student_group %}
-                    <!-- Upload Form -->
-                    <div class="card mb-4">
-                        <div class="card-header bg-white">
-                            <h5 class="mb-0"><i class="bi bi-cloud-arrow-up me-2"></i>Upload New Submission</h5>
-                        </div>
-                        <div class="card-body">
-                            <form action="{{ url_for('student_submit_work') }}" method="POST" enctype="multipart/form-data">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="submission_title" class="form-label">Title <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" id="submission_title" name="submission_title" required placeholder="e.g., Progress Report - Week 5">
+                    <div class="row g-4 mb-4">
+                        <div class="col-xl-8">
+                            <div class="submission-card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+                                        <div>
+                                            <h5 class="mb-1"><i class="bi bi-cloud-arrow-up me-2"></i>Upload New Submission</h5>
+                                            <p class="text-muted mb-0">Submit your work, choose a type, and provide a short description before uploading.</p>
+                                        </div>
+                                        <span class="badge bg-primary">Only student role</span>
                                     </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="submission_type" class="form-label">Submission Type</label>
-                                        <select class="form-select" id="submission_type" name="submission_type">
+
+                                    <form action="{{ url_for('student_submit_work') }}" method="POST" enctype="multipart/form-data">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label for="submission_title" class="form-label">Title <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="submission_title" name="submission_title" required placeholder="e.g., Progress Report - Week 5">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="submission_type" class="form-label">Submission Type <span class="text-danger">*</span></label>
+                                                <select class="form-select" id="submission_type" name="submission_type" required>
+                                                    <option value="">Select submission type</option>
+                                                    <option value="General">General</option>
+                                                    <option value="Proposal">Proposal</option>
+                                                    <option value="Progress Report">Progress Report</option>
+                                                    <option value="Final Report">Final Report</option>
+                                                    <option value="Code">Code / Source Files</option>
+                                                    <option value="Presentation">Presentation</option>
+                                                    <option value="Documentation">Documentation</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3 mt-3">
+                                            <label for="submission_description" class="form-label">Description (Optional)</label>
+                                            <textarea class="form-control" id="submission_description" name="submission_description" rows="3" placeholder="Brief description of what you're submitting..."></textarea>
+                                        </div>
+
+                                        <div class="upload-dropzone" id="submissionDropzone">
+                                            <div>
+                                                <i class="bi bi-cloud-upload"></i>
+                                                <div class="dropzone-text mt-3">Drag & drop your file here<br>or</div>
+                                                <button type="button" class="btn btn-primary btn-sm dropzone-button" id="chooseFileButton">Choose File</button>
+                                                <div class="small text-muted mt-2">Accepted formats: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT, ZIP, RAR, PNG, JPG. Max size: 16 MB.</div>
+                                            </div>
+                                            <input type="file" class="form-control d-none" id="submission_file" name="submission_file" required accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.png,.jpg,.jpeg">
+                                        </div>
+
+                                        <div class="mt-3 d-flex flex-column flex-md-row align-items-start gap-3">
+                                            <button type="submit" class="btn btn-primary px-4">
+                                                <i class="bi bi-send me-2"></i>Submit
+                                            </button>
+                                            <div class="text-muted small">Ensure your file follows the required format and is ready for review.</div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-4">
+                            <div class="card submission-guidelines h-100">
+                                <div class="card-body">
+                                    <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>Submission Guidelines</h6>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item"><i class="bi bi-check-circle-fill text-primary me-2"></i>Ensure your file follows the required format.</li>
+                                        <li class="list-group-item"><i class="bi bi-check-circle-fill text-primary me-2"></i>File size must not exceed 16 MB.</li>
+                                        <li class="list-group-item"><i class="bi bi-check-circle-fill text-primary me-2"></i>Add a meaningful title and description.</li>
+                                        <li class="list-group-item"><i class="bi bi-check-circle-fill text-primary me-2"></i>Make sure your work is original.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="submission-card">
+                        <div class="card-body">
+                            <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-4 submission-filter-bar p-3">
+                                <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center w-100">
+                                    <div class="w-100 w-md-auto">
+                                        <label class="form-label small mb-1">All Types</label>
+                                        <select class="form-select" id="submissionTypeFilter">
+                                            <option value="All">All Types</option>
                                             <option value="General">General</option>
                                             <option value="Proposal">Proposal</option>
                                             <option value="Progress Report">Progress Report</option>
                                             <option value="Final Report">Final Report</option>
-                                            <option value="Code">Code / Source Files</option>
+                                            <option value="Code">Code</option>
                                             <option value="Presentation">Presentation</option>
                                             <option value="Documentation">Documentation</option>
                                         </select>
                                     </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="submission_description" class="form-label">Description (Optional)</label>
-                                    <textarea class="form-control" id="submission_description" name="submission_description" rows="2" placeholder="Brief description of what you're submitting..."></textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="submission_file" class="form-label">File <span class="text-danger">*</span></label>
-                                    <input type="file" class="form-control" id="submission_file" name="submission_file" required accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.png,.jpg,.jpeg">
-                                    <div class="form-text">
-                                        Accepted formats: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT, ZIP, RAR, PNG, JPG. Max size: 16 MB.
+                                    <div class="w-100 w-md-auto">
+                                        <label class="form-label small mb-1">Sort</label>
+                                        <select class="form-select" id="submissionSortFilter">
+                                            <option value="newest">Latest First</option>
+                                            <option value="oldest">Oldest First</option>
+                                            <option value="status">Status</option>
+                                        </select>
                                     </div>
                                 </div>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-upload me-2"></i>Submit
-                                </button>
-                            </form>
-                        </div>
-                    </div>
+                                <div class="ms-auto">
+                                    <span class="text-muted small">Showing {{ submissions|length }} submission{{ 's' if submissions|length != 1 else '' }}</span>
+                                </div>
+                            </div>
 
-                    <!-- Previous Submissions -->
-                    <div class="card">
-                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0"><i class="bi bi-folder2-open me-2"></i>My Submissions</h5>
-                            <span class="badge bg-primary">{{ submissions|length }} file{{ 's' if submissions|length != 1 else '' }}</span>
-                        </div>
-                        <div class="card-body p-0">
                             {% if submissions %}
-                            <div class="table-responsive">
-                                <table class="table table-hover m-0">
+                            <div class="submission-table-wrapper">
+                                <table class="table table-hover align-middle mb-0">
                                     <thead class="table-light">
                                         <tr>
                                             <th>Title</th>
                                             <th>Type</th>
                                             <th>File</th>
-                                            <th>Size</th>
-                                            <th>Date</th>
+                                            <th>Submitted On</th>
                                             <th>Status</th>
-                                            <th>Actions</th>
+                                            <th class="text-center">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody id="submissionTableBody">
                                         {% for sub in submissions %}
-                                        <tr>
+                                        <tr data-type="{{ sub.submission_type }}" data-status="{{ sub.status }}">
                                             <td>
                                                 <strong>{{ sub.title }}</strong>
                                                 {% if sub.description %}
@@ -464,46 +1234,27 @@
                                                 <i class="bi {% if sub.file_type == 'pdf' %}bi-file-earmark-pdf text-danger{% elif sub.file_type in ['doc', 'docx'] %}bi-file-earmark-word text-primary{% elif sub.file_type in ['ppt', 'pptx'] %}bi-file-earmark-ppt text-warning{% elif sub.file_type in ['zip', 'rar'] %}bi-file-earmark-zip text-secondary{% elif sub.file_type in ['png', 'jpg', 'jpeg'] %}bi-file-earmark-image text-success{% else %}bi-file-earmark text-muted{% endif %} me-1"></i>
                                                 {{ sub.original_filename }}
                                             </td>
-                                            <td>{{ sub.file_size_display }}</td>
-                                            <td>{{ sub.created_at.strftime('%b %d, %Y') }}</td>
+                                            <td>{{ sub.created_at.strftime('%d %b %Y') }}</td>
                                             <td>
-                                                <span class="badge {% if sub.status == 'Approved' %}bg-success{% elif sub.status == 'Reviewed' %}bg-info{% elif sub.status == 'Rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                                <span class="badge submission-status-pill {% if sub.status == 'Approved' %}bg-success{% elif sub.status == 'Reviewed' %}bg-info{% elif sub.status == 'Rejected' %}bg-danger{% elif sub.status == 'Submitted' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
                                                     {{ sub.status }}
                                                 </span>
-                                                {% if sub.feedback %}
-                                                <br><small class="text-muted mt-1" title="{{ sub.feedback }}"><i class="bi bi-chat-dots"></i> Has feedback</small>
-                                                {% endif %}
                                             </td>
-                                            <td>
-                                                <a href="{{ url_for('download_submission', submission_id=sub.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Download">
-                                                    <i class="bi bi-download"></i>
+                                            <td class="text-center">
+                                                <a href="{{ url_for('download_submission', submission_id=sub.id) }}" class="btn btn-sm btn-outline-primary" title="View">
+                                                    <i class="bi bi-eye"></i>
                                                 </a>
-                                                {% if sub.status == 'Submitted' %}
-                                                <form action="{{ url_for('delete_submission', submission_id=sub.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this submission?')">
-                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                </form>
-                                                {% endif %}
                                             </td>
                                         </tr>
-                                        {% if sub.feedback %}
-                                        <tr>
-                                            <td colspan="7" class="bg-light ps-4">
-                                                <small><i class="bi bi-chat-left-quote me-1 text-primary"></i><strong>Feedback:</strong> {{ sub.feedback }}</small>
-                                            </td>
-                                        </tr>
-                                        {% endif %}
                                         {% endfor %}
                                     </tbody>
                                 </table>
                             </div>
                             {% else %}
                             <div class="text-center py-5 text-muted">
-                                <i class="bi bi-cloud-arrow-up" style="font-size: 3rem;"></i>
-                                <p class="mt-3">No submissions yet.</p>
-                                <p class="small">Use the form above to upload your work.</p>
+                                <i class="bi bi-folder2-open" style="font-size: 3rem;"></i>
+                                <p class="mt-3 mb-1">No submissions found.</p>
+                                <p class="small">Use the upload form above to submit your first file.</p>
                             </div>
                             {% endif %}
                         </div>
@@ -520,122 +1271,177 @@
                     <h2 class="mb-4">Assigned Work</h2>
 
                     {% if assigned_works %}
-                    <!-- Summary -->
-                    <div class="row mb-4">
-                        <div class="col-md-3">
-                            <div class="card dashboard-card text-center">
-                                <div class="card-body py-3">
-                                    <i class="bi bi-list-task text-primary" style="font-size: 1.5rem;"></i>
-                                    <h4 class="mt-1 mb-0">{{ assigned_works|length }}</h4>
-                                    <small class="text-muted">Total Tasks</small>
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6 col-xl-3">
+                            <div class="card assigned-summary-card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <div>
+                                            <h6 class="mb-2 text-uppercase text-muted">Total Tasks</h6>
+                                            <h3 class="mb-0">{{ assigned_work_total }}</h3>
+                                        </div>
+                                        <div class="task-icon bg-primary bg-opacity-10 text-primary">
+                                            <i class="bi bi-list-task"></i>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="card dashboard-card text-center">
-                                <div class="card-body py-3">
-                                    <i class="bi bi-hourglass-split text-warning" style="font-size: 1.5rem;"></i>
-                                    <h4 class="mt-1 mb-0">{{ assigned_works|selectattr('status', 'eq', 'Pending')|list|length }}</h4>
-                                    <small class="text-muted">Pending</small>
+                        <div class="col-sm-6 col-xl-3">
+                            <div class="card assigned-summary-card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <div>
+                                            <h6 class="mb-2 text-uppercase text-muted">Pending</h6>
+                                            <h3 class="mb-0">{{ assigned_work_pending }}</h3>
+                                        </div>
+                                        <div class="task-icon bg-warning bg-opacity-10 text-warning">
+                                            <i class="bi bi-hourglass-split"></i>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="card dashboard-card text-center">
-                                <div class="card-body py-3">
-                                    <i class="bi bi-check2-circle text-success" style="font-size: 1.5rem;"></i>
-                                    <h4 class="mt-1 mb-0">{{ (assigned_works|selectattr('status', 'eq', 'Completed')|list|length) + (assigned_works|selectattr('status', 'eq', 'Submitted')|list|length) }}</h4>
-                                    <small class="text-muted">Done/Submitted</small>
+                        <div class="col-sm-6 col-xl-3">
+                            <div class="card assigned-summary-card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <div>
+                                            <h6 class="mb-2 text-uppercase text-muted">Completed</h6>
+                                            <h3 class="mb-0">{{ assigned_work_completed }}</h3>
+                                        </div>
+                                        <div class="task-icon bg-success bg-opacity-10 text-success">
+                                            <i class="bi bi-check2-circle"></i>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="card dashboard-card text-center">
-                                <div class="card-body py-3">
-                                    <i class="bi bi-exclamation-triangle text-danger" style="font-size: 1.5rem;"></i>
-                                    <h4 class="mt-1 mb-0">{{ assigned_works|selectattr('status', 'eq', 'Overdue')|list|length }}</h4>
-                                    <small class="text-muted">Overdue</small>
+                        <div class="col-sm-6 col-xl-3">
+                            <div class="card assigned-summary-card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <div>
+                                            <h6 class="mb-2 text-uppercase text-muted">Overdue</h6>
+                                            <h3 class="mb-0">{{ assigned_work_overdue }}</h3>
+                                        </div>
+                                        <div class="task-icon bg-danger bg-opacity-10 text-danger">
+                                            <i class="bi bi-exclamation-triangle"></i>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Work Items -->
-                    {% for work in assigned_works %}
-                    <div class="card mb-3 {% if work.is_overdue %}border-danger{% elif work.status == 'Completed' %}border-success{% elif work.status == 'Submitted' %}border-info{% elif work.status == 'Needs Revision' %}border-warning{% endif %}">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <h5 class="card-title mb-1">
-                                        <i class="bi {% if work.status == 'Completed' %}bi-check-circle-fill text-success{% elif work.status == 'Submitted' %}bi-send-check text-info{% elif work.status == 'Needs Revision' %}bi-arrow-repeat text-warning{% elif work.is_overdue %}bi-exclamation-circle-fill text-danger{% else %}bi-circle text-secondary{% endif %} me-2"></i>
-                                        {{ work.title }}
-                                    </h5>
-                                    {% if work.description %}
-                                    <p class="text-muted mb-2">{{ work.description }}</p>
-                                    {% endif %}
-                                    <div class="d-flex gap-2 flex-wrap">
-                                        <span class="badge bg-info">{{ work.work_type }}</span>
-                                        <span class="badge {% if work.priority == 'Urgent' %}bg-danger{% elif work.priority == 'High' %}bg-warning text-dark{% elif work.priority == 'Medium' %}bg-primary{% else %}bg-secondary{% endif %}">{{ work.priority }}</span>
-                                        {% if work.due_date %}
-                                        <span class="badge {% if work.is_overdue %}bg-danger{% else %}bg-outline-dark border{% endif %}">
-                                            <i class="bi bi-calendar me-1"></i>{{ work.due_date.strftime('%b %d, %Y') }}
-                                        </span>
-                                        {% endif %}
-                                        <span class="badge {% if work.status == 'Completed' %}bg-success{% elif work.status == 'Submitted' %}bg-info{% elif work.status == 'In Progress' %}bg-primary{% elif work.status == 'Overdue' %}bg-danger{% elif work.status == 'Needs Revision' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                                            {{ work.status }}
-                                        </span>
-                                        {% if work.assigned_to %}
-                                        <span class="badge bg-primary"><i class="bi bi-person me-1"></i>Assigned to You</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary"><i class="bi bi-people me-1"></i>Entire Group</span>
-                                        {% endif %}
+                    <div class="card mb-4">
+                        <div class="card-body assigned-work-filter-bar">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-lg-4">
+                                    <label class="form-label small mb-2">Filter by Status</label>
+                                    <select id="assignedStatusFilter" class="form-select">
+                                        <option value="All">All Statuses</option>
+                                        {% for status in assigned_work_statuses %}
+                                            <option value="{{ status }}">{{ status }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-lg-4">
+                                    <label class="form-label small mb-2">Filter by Priority</label>
+                                    <select id="assignedPriorityFilter" class="form-select">
+                                        <option value="All">All Priorities</option>
+                                        {% for priority in assigned_work_priorities %}
+                                            <option value="{{ priority }}">{{ priority }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-lg-4">
+                                    <label class="form-label small mb-2">Search tasks</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                                        <input id="assignedWorkSearch" type="search" class="form-control border-start-0" placeholder="Search by title, description or priority...">
                                     </div>
                                 </div>
-                                <div>
-                                    {% if work.status not in ['Completed', 'Submitted'] %}
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                            Update
-                                        </button>
-                                        <ul class="dropdown-menu">
-                                            {% if work.status != 'In Progress' %}
-                                            <li>
-                                                <form method="POST" action="{{ url_for('student_update_work', work_id=work.id) }}">
-                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                    <input type="hidden" name="student_work_status" value="In Progress">
-                                                    <button type="submit" class="dropdown-item"><i class="bi bi-play-circle me-2"></i>Mark In Progress</button>
-                                                </form>
-                                            </li>
-                                            {% endif %}
-                                            <li>
-                                                <button type="button" class="dropdown-item submit-work-btn" data-bs-toggle="modal" data-bs-target="#submitWorkModal" data-id="{{ work.id }}" data-title="{{ work.title }}">
-                                                    <i class="bi bi-send me-2"></i>Mark as Submitted
-                                                </button>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    {% endif %}
-                                </div>
                             </div>
-                            {% if work.student_response %}
-                            <div class="mt-2 p-2 bg-light rounded">
-                                <small class="text-primary"><i class="bi bi-chat-dots me-1"></i><strong>Your Response:</strong> {{ work.student_response }}</small>
-                            </div>
-                            {% endif %}
-                            {% if work.supervisor_comment %}
-                            <div class="mt-2 p-2 bg-success bg-opacity-10 rounded border border-success">
-                                <small class="text-success"><i class="bi bi-chat-left-text me-1"></i><strong>Supervisor Feedback:</strong> {{ work.supervisor_comment }}</small>
-                            </div>
-                            {% endif %}
-                            {% if work.status == 'Needs Revision' %}
-                            <div class="mt-2">
-                                <span class="badge bg-warning text-dark"><i class="bi bi-arrow-repeat me-1"></i>Your supervisor has requested revisions. Please update and resubmit.</span>
-                            </div>
-                            {% endif %}
                         </div>
                     </div>
-                    {% endfor %}
 
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div class="table-responsive assigned-work-table">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Task</th>
+                                            <th>Description</th>
+                                            <th>Due Date</th>
+                                            <th>Priority</th>
+                                            <th>Status</th>
+                                            <th class="text-end">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for work in assigned_works %}
+                                        <tr class="assigned-work-row" data-status="{{ work.status }}" data-priority="{{ work.priority }}" data-search-text="{{ (work.title ~ ' ' ~ (work.description or '') ~ ' ' ~ (work.work_type or '') ~ ' ' ~ (work.priority or ''))|lower }}">
+                                            <td>
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <span class="task-icon bg-light text-primary"><i class="bi bi-file-earmark-text"></i></span>
+                                                    <div>
+                                                        <div class="fw-semibold">{{ work.title }}</div>
+                                                        <small class="text-muted">{{ work.work_type or 'General task' }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td><span class="text-muted">{{ work.description or 'No description provided.' }}</span></td>
+                                            <td>
+                                                {% if work.due_date %}
+                                                <div>{{ work.due_date.strftime('%d %b %Y') }}</div>
+                                                <small class="text-muted">{{ work.due_label }}</small>
+                                                {% else %}
+                                                <span class="text-muted">No deadline</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="task-chip {% if work.priority == 'Urgent' %}urgent{% elif work.priority == 'High' %}high{% elif work.priority == 'Medium' %}medium{% else %}low{% endif %}">{{ work.priority or 'Normal' }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="status-pill badge {% if work.status == 'Completed' %}bg-success{% elif work.status == 'Submitted' %}bg-info{% elif work.status == 'In Progress' %}bg-primary{% elif work.status == 'Overdue' %}bg-danger{% elif work.status == 'Needs Revision' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ work.status }}</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="d-flex justify-content-end flex-wrap gap-2">
+                                                    {% if work.status != 'Completed' and work.status != 'Submitted' %}
+                                                    {% if work.status != 'In Progress' %}
+                                                    <form method="POST" action="{{ url_for('student_update_work', work_id=work.id) }}">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <input type="hidden" name="student_work_status" value="In Progress">
+                                                        <button type="submit" class="btn btn-sm btn-outline-primary">In Progress</button>
+                                                    </form>
+                                                    {% endif %}
+                                                    <button type="button" class="btn btn-sm btn-primary submit-work-btn" data-bs-toggle="modal" data-bs-target="#submitWorkModal" data-id="{{ work.id }}" data-title="{{ work.title }}">Submit</button>
+                                                    {% else %}
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Completed</button>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white border-top d-flex flex-column flex-md-row align-items-center justify-content-between gap-2">
+                            <div class="small text-muted">Showing {{ assigned_works|length }} assigned work item{{ 's' if assigned_works|length != 1 else '' }}.</div>
+                            <nav aria-label="Assigned work pagination">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
+                                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                    <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
                     {% else %}
                     <div class="text-center py-5 text-muted">
                         <i class="bi bi-list-task" style="font-size: 3rem;"></i>
@@ -645,11 +1451,11 @@
                     {% endif %}
                 </div>
 
-                <!-- Submit Work Modal -->
+            <!-- Submit Work Modal -->
                 <div class="modal fade" id="submitWorkModal" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog">
                         <div class="modal-content">
-                            <form method="POST" id="submitWorkForm">
+                            <form method="POST" id="submitWorkForm" enctype="multipart/form-data">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="student_work_status" value="Submitted">
                                 <div class="modal-header">
@@ -661,6 +1467,11 @@
                                     <div class="mb-3">
                                         <label class="form-label">Response / Notes (Optional)</label>
                                         <textarea class="form-control" name="student_work_response" rows="3" placeholder="Add any notes for your supervisor..."></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Attach Submission File (Optional)</label>
+                                        <input type="file" class="form-control" name="student_submission_file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.png,.jpg,.jpeg">
+                                        <div class="form-text">Upload your work file to submit with this task.</div>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -706,6 +1517,59 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- SocketIO Library -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
+    <!-- Real-time Updates Module -->
+    <script src="{{ url_for('static', filename='js/realtime-updates.js') }}"></script>
+    
+    <!-- Initialize Real-time Updates for Student -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize real-time updates for student dashboard
+            const realtimeUpdates = new RealtimeUpdates({
+                role: 'student',
+                userId: {{ current_user.id }},
+                updateInterval: 5000
+            });
+
+            // Handle dashboard updates
+            realtimeUpdates.on('onDashboardUpdate', function(data) {
+                console.log('Student dashboard updated:', data);
+                if (data.assigned_work_total !== undefined) {
+                    const workTotal = document.querySelector('[data-stat="work-total"]');
+                    if (workTotal) workTotal.textContent = data.assigned_work_total;
+                }
+                if (data.assigned_work_pending !== undefined) {
+                    const workPending = document.querySelector('[data-stat="work-pending"]');
+                    if (workPending) workPending.textContent = data.assigned_work_pending;
+                }
+            });
+
+            // Handle task updates
+            document.addEventListener('taskUpdated', function(e) {
+                const data = e.detail;
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('New Task', { body: 'A new task has been assigned' });
+                }
+            });
+
+            // Handle remark updates
+            document.addEventListener('remarkReceived', function(e) {
+                const data = e.detail;
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('New Remark', { body: data.content || 'Feedback from supervisor' });
+                }
+            });
+
+            // Listen for notifications
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        });
+    </script>
+    
     <script>
         // Section navigation
         document.addEventListener('DOMContentLoaded', function() {
@@ -737,6 +1601,11 @@
                     if (sidebarLink) {
                         sidebarLink.classList.add('active');
                     }
+                    
+                    // Load proposals if project-proposal section is clicked
+                    if (targetSection === 'project-proposal') {
+                        loadProposals();
+                    }
                 });
             });
 
@@ -749,7 +1618,207 @@
                     document.getElementById('submitWorkForm').action = '/student/update_work/' + id;
                 });
             });
+
+            // Supervisor remarks filtering and search
+            const remarkFilter = document.getElementById('remarkFilter');
+            const remarkSearch = document.getElementById('remarkSearch');
+            if (remarkFilter && remarkSearch) {
+                const remarkItems = document.querySelectorAll('.remark-item');
+
+                function filterRemarks() {
+                    const filterValue = remarkFilter.value;
+                    const searchValue = remarkSearch.value.trim().toLowerCase();
+
+                    remarkItems.forEach(function(item) {
+                        const type = item.getAttribute('data-remark-type');
+                        const text = item.getAttribute('data-search-text').toLowerCase();
+                        const matchesFilter = filterValue === 'All' || type === filterValue;
+                        const matchesSearch = !searchValue || text.includes(searchValue);
+                        item.style.display = matchesFilter && matchesSearch ? '' : 'none';
+                    });
+                }
+
+                remarkFilter.addEventListener('change', filterRemarks);
+                remarkSearch.addEventListener('input', filterRemarks);
+            }
+
+            // Assigned work filtering and search
+            const assignedStatusFilter = document.getElementById('assignedStatusFilter');
+            const assignedPriorityFilter = document.getElementById('assignedPriorityFilter');
+            const assignedWorkSearch = document.getElementById('assignedWorkSearch');
+            if (assignedStatusFilter && assignedPriorityFilter && assignedWorkSearch) {
+                const assignedRows = document.querySelectorAll('.assigned-work-row');
+
+                function filterAssignedWork() {
+                    const statusValue = assignedStatusFilter.value;
+                    const priorityValue = assignedPriorityFilter.value;
+                    const searchValue = assignedWorkSearch.value.trim().toLowerCase();
+
+                    assignedRows.forEach(function(row) {
+                        const status = row.getAttribute('data-status');
+                        const priority = row.getAttribute('data-priority');
+                        const text = row.getAttribute('data-search-text');
+                        const matchesStatus = statusValue === 'All' || status === statusValue;
+                        const matchesPriority = priorityValue === 'All' || priority === priorityValue;
+                        const matchesSearch = !searchValue || text.includes(searchValue);
+                        row.style.display = matchesStatus && matchesPriority && matchesSearch ? '' : 'none';
+                    });
+                }
+
+                assignedStatusFilter.addEventListener('change', filterAssignedWork);
+                assignedPriorityFilter.addEventListener('change', filterAssignedWork);
+                assignedWorkSearch.addEventListener('input', filterAssignedWork);
+            }
+
+            // File upload drag/drop UI for submissions
+            const dropzone = document.getElementById('submissionDropzone');
+            const fileInput = document.getElementById('submission_file');
+            const chooseFileButton = document.getElementById('chooseFileButton');
+            if (dropzone && fileInput && chooseFileButton) {
+                chooseFileButton.addEventListener('click', function() {
+                    fileInput.click();
+                });
+
+                dropzone.addEventListener('click', function(event) {
+                    if (event.target === dropzone) {
+                        fileInput.click();
+                    }
+                });
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropzone.classList.add('dragover');
+                    });
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropzone.classList.remove('dragover');
+                    });
+                });
+
+                dropzone.addEventListener('drop', function(e) {
+                    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+                        fileInput.files = e.dataTransfer.files;
+                    }
+                });
+
+                fileInput.addEventListener('change', function() {
+                    if (fileInput.files.length) {
+                        chooseFileButton.textContent = fileInput.files[0].name;
+                    }
+                });
+            }
+
+            // Reply functionality for remarks
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('reply-btn') || e.target.closest('.reply-btn')) {
+                    const btn = e.target.classList.contains('reply-btn') ? e.target : e.target.closest('.reply-btn');
+                    const remarkId = btn.getAttribute('data-remark-id');
+                    const replyForm = document.getElementById('reply-form-' + remarkId);
+                    if (replyForm) {
+                        replyForm.classList.remove('d-none');
+                        // Focus on textarea
+                        const textarea = replyForm.querySelector('textarea');
+                        if (textarea) {
+                            textarea.focus();
+                        }
+                    }
+                }
+                
+                if (e.target.classList.contains('cancel-reply') || e.target.closest('.cancel-reply')) {
+                    const btn = e.target.classList.contains('cancel-reply') ? e.target : e.target.closest('.cancel-reply');
+                    const remarkId = btn.getAttribute('data-remark-id');
+                    const replyForm = document.getElementById('reply-form-' + remarkId);
+                    if (replyForm) {
+                        replyForm.classList.add('d-none');
+                        // Clear textarea
+                        const textarea = replyForm.querySelector('textarea');
+                        if (textarea) {
+                            textarea.value = '';
+                        }
+                    }
+                }
+            });
+
+            // Load proposals on page load if group leader
+            if (document.getElementById('project-proposal')) {
+                loadProposalsOnInit();
+            }
         });
+
+        // Load proposals from server
+        function loadProposals() {
+            fetch('{{ url_for("project_proposal") }}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayProposals(data.proposals);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading proposals:', error);
+                    document.getElementById('proposalsContainer').innerHTML = '<p class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Error loading proposals</p>';
+                });
+        }
+
+        function loadProposalsOnInit() {
+            setTimeout(loadProposals, 500);
+        }
+
+        // Display proposals in the container
+        function displayProposals(proposals) {
+            const container = document.getElementById('proposalsContainer');
+            
+            if (!proposals || proposals.length === 0) {
+                container.innerHTML = '<p class="text-muted"><i class="bi bi-info-circle me-2"></i>No proposals submitted yet.</p>';
+                return;
+            }
+
+            let html = '<div class="row g-3">';
+            
+            proposals.forEach(proposal => {
+                const statusBadge = proposal.status === 'Pending' ? 'bg-warning' : (proposal.status === 'Approved' ? 'bg-success' : 'bg-danger');
+                const statusText = proposal.status === 'Pending' ? '<i class="bi bi-hourglass-split me-1"></i>Pending Review' : (proposal.status === 'Approved' ? '<i class="bi bi-check-circle me-1"></i>Approved' : '<i class="bi bi-x-circle me-1"></i>Rejected');
+                
+                html += `
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <h6 class="card-title mb-1">${proposal.title}</h6>
+                                <small class="text-muted">Category: ${proposal.major}</small>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text small mb-2">${proposal.description.substring(0, 150)}...</p>
+                                <small class="text-muted d-block mb-2">
+                                    <i class="bi bi-calendar me-1"></i>Submitted: ${proposal.created_at}
+                                </small>
+                                <span class="badge ${statusBadge}">${statusText}</span>
+                                ${proposal.feedback ? `<small class="text-muted d-block mt-2"><strong>Feedback:</strong> ${proposal.feedback}</small>` : ''}
+                            </div>
+                            <div class="card-footer bg-light">
+                                <a href="#" class="btn btn-sm btn-outline-primary" onclick="viewProposalDetails('${proposal.id}', '${proposal.title}', '${proposal.description}', '${proposal.major}', '${proposal.status}', '${proposal.created_at}')">
+                                    <i class="bi bi-eye me-1"></i>View Details
+                                </a>
+                                ${proposal.file_attachment ? `<a href="/proposal/${proposal.id}/download" class="btn btn-sm btn-outline-success"><i class="bi bi-download me-1"></i>Download</a>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // View proposal details
+        function viewProposalDetails(id, title, description, major, status, created_at) {
+            alert(`Proposal: ${title}\n\nCategory: ${major}\nStatus: ${status}\nSubmitted: ${created_at}\n\nDescription: ${description}`);
+        }
     </script>
     <!-- Auto-refresh -->
     <script src="{{ url_for('static', filename='js/auto-refresh.js') }}"></script>

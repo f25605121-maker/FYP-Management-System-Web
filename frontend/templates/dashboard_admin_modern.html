@@ -66,6 +66,28 @@
             gap: 1rem;
             margin-bottom: 2rem;
         }
+
+        /* Keep sidebar item spacing uniform (prevents unexpected large gaps) */
+        .sidebar .nav.nav-pills {
+            gap: 0 !important;
+        }
+
+        .sidebar .nav.nav-pills .nav-item {
+            margin: 0 !important;
+        }
+
+        .sidebar .nav.nav-pills .nav-item + .nav-item {
+            margin-top: 0.5rem !important;
+        }
+
+        /* Prevent utility/empty items from creating a fake gap before Settings */
+        .sidebar .nav.nav-pills .nav-item.mt-auto {
+            margin-top: 0.5rem !important;
+        }
+
+        .sidebar .nav.nav-pills .nav-item:empty {
+            display: none !important;
+        }
         
         .quick-action-card {
             background: white;
@@ -91,6 +113,368 @@
             font-size: 2.5rem;
             color: var(--primary-600);
             margin-bottom: 1rem;
+        }
+
+        .top-icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--gray-200);
+            background: #fff;
+            color: var(--gray-700);
+            position: relative;
+        }
+
+        .top-icon-btn .badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            font-size: 0.65rem;
+        }
+
+        .header-date-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 12px;
+            color: #fff;
+            padding: 0.7rem 0.9rem;
+            min-width: 210px;
+            justify-content: center;
+        }
+
+        .header-date-pill i {
+            font-size: 1rem;
+            opacity: 0.95;
+        }
+
+        .header-date-pill .date-main {
+            font-weight: 700;
+            line-height: 1.1;
+            font-size: 0.95rem;
+        }
+
+        .header-date-pill .date-sub {
+            font-size: 0.78rem;
+            opacity: 0.9;
+        }
+
+        .admin-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .admin-kpi-card {
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            border-radius: 14px;
+            padding: 1rem;
+            box-shadow: var(--shadow-sm);
+            min-height: 122px;
+        }
+
+        .admin-kpi-card .kpi-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.6rem;
+        }
+
+        .admin-kpi-card .kpi-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .admin-kpi-card .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+            color: #1f2a44;
+        }
+
+        .admin-kpi-card .kpi-label {
+            font-size: 0.76rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-weight: 600;
+        }
+
+        .admin-kpi-card .kpi-sub {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .kpi-link {
+            margin-top: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: #1d4ed8;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .admin-action-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .admin-action-tile {
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 0.95rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            text-decoration: none;
+            color: #1f2a44;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .admin-action-tile:hover {
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+        }
+
+        .admin-action-tile .icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .admin-action-tile .title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .admin-action-tile .sub {
+            font-size: 0.78rem;
+            color: #6b7280;
+        }
+
+        .dashboard-panel {
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            border-radius: 14px;
+            box-shadow: var(--shadow-sm);
+            height: 100%;
+        }
+
+        .dashboard-panel .panel-header {
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .dashboard-panel .panel-title {
+            margin: 0;
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: #1f2a44;
+        }
+
+        .dashboard-panel .panel-body {
+            padding: 1rem;
+        }
+
+        .ring-wrap {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .ring-chart {
+            --ring-value-a: 0;
+            --ring-value-b: 0;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: conic-gradient(
+                #3b82f6 0% calc(var(--ring-value-a) * 1%),
+                #10b981 calc(var(--ring-value-a) * 1%) calc((var(--ring-value-a) + var(--ring-value-b)) * 1%),
+                #ef4444 calc((var(--ring-value-a) + var(--ring-value-b)) * 1%) 100%
+            );
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .ring-chart.secondary {
+            background: conic-gradient(
+                #3b82f6 0% calc(var(--ring-value-a) * 1%),
+                #10b981 calc(var(--ring-value-a) * 1%) calc((var(--ring-value-a) + var(--ring-value-b)) * 1%),
+                #8b5cf6 calc((var(--ring-value-a) + var(--ring-value-b)) * 1%) 100%
+            );
+        }
+
+        .ring-chart::after {
+            content: '';
+            width: 102px;
+            height: 102px;
+            border-radius: 50%;
+            background: #fff;
+            position: absolute;
+            inset: 24px;
+            border: 1px solid #eef2f7;
+        }
+
+        .ring-center {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .ring-center .num {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2a44;
+            line-height: 1;
+        }
+
+        .ring-center .caption {
+            font-size: 0.78rem;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .legend-col {
+            width: 100%;
+        }
+
+        .legend-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #334155;
+            padding: 0.35rem 0;
+        }
+
+        .legend-row .left {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        .stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-row,
+        .list-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.62rem 0;
+            border-bottom: 1px solid #eef2f7;
+            gap: 0.75rem;
+        }
+
+        .status-row:last-child,
+        .list-row:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .status-row .left,
+        .list-row .left {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            min-width: 0;
+        }
+
+        .status-row .name,
+        .list-row .name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1f2a44;
+            line-height: 1.15;
+        }
+
+        .status-row .meta,
+        .list-row .meta {
+            font-size: 0.78rem;
+            color: #6b7280;
+        }
+
+        .status-pill {
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 0.2rem 0.55rem;
+        }
+
+        .status-pill.online {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .status-pill.upcoming {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .status-pill.warning {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .small-link {
+            font-size: 0.78rem;
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        @media (max-width: 1400px) {
+            .admin-kpi-grid,
+            .admin-action-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 991.98px) {
+            .admin-kpi-grid,
+            .admin-action-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .ring-wrap {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
         
         .recent-activity {
@@ -294,6 +678,11 @@
             </a>
             
             <div class="d-flex ms-auto">
+                <div class="d-flex align-items-center gap-2 me-3">
+                    <button class="top-icon-btn section-link" data-section="settings" title="Settings">
+                        <i class="bi bi-gear"></i>
+                    </button>
+                </div>
                 <div class="dropdown">
                     <button class="btn btn-light btn-sm py-2 px-3" type="button" id="userDropdown" data-bs-toggle="dropdown">
                         <i class="bi bi-person-circle me-2"></i>
@@ -301,8 +690,8 @@
                         <i class="bi bi-chevron-down ms-2"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="{{ url_for('profile') }}">
-                            <i class="bi bi-person me-2"></i>Profile
+                        <li><a class="dropdown-item" href="{{ url_for('admin_profile') }}">
+                            <i class="bi bi-shield-check me-2"></i>Admin Profile & Settings
                         </a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
@@ -323,16 +712,14 @@
                     <p class="subtitle-text">Here's what's happening with your FYP Management System today</p>
                 </div>
                 <div class="col-md-4 text-md-end">
-                    <div class="d-flex gap-2 justify-content-md-end mt-3 mt-md-0">
-                        <button class="btn btn-light section-link" data-section="dashboard" title="Notifications">
-                            <i class="bi bi-bell"></i>
-                            {% if recent_activities|length > 0 %}
-                            <span class="badge bg-danger">{{ recent_activities|length }}</span>
-                            {% endif %}
-                        </button>
-                        <button class="btn btn-light section-link" data-section="settings" title="Settings">
-                            <i class="bi bi-gear"></i>
-                        </button>
+                    <div class="d-flex justify-content-md-end mt-3 mt-md-0">
+                        <div class="header-date-pill">
+                            <i class="bi bi-calendar3"></i>
+                            <div class="text-start">
+                                <div class="date-main">{{ dashboard_now.strftime('%b %d, %Y') }}</div>
+                                <div class="date-sub">{{ dashboard_now.strftime('%A, %I:%M %p') }}</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -417,216 +804,279 @@
 
                 <!-- Dashboard Section -->
                 <div id="dashboard" class="content-section active">
-                    <!-- Stats Grid -->
-                    <div class="stats-grid">
-                        <div class="stat-card primary">
-                            <i class="bi bi-people"></i>
-                            <div class="stat-value">{{ total_users }}</div>
-                            <div class="stat-label">Total Users</div>
+                    {% set role_total = students|length + supervisors|length + teachers|length %}
+                    {% set student_pct = ((students|length / role_total) * 100)|round|int if role_total > 0 else 0 %}
+                    {% set supervisor_pct = ((supervisors|length / role_total) * 100)|round|int if role_total > 0 else 0 %}
+                    {% set coordinator_pct = ((teachers|length / role_total) * 100)|round|int if role_total > 0 else 0 %}
+                    {% set project_total = ongoing_projects + completed_projects + rejected_projects %}
+                    {% set ongoing_pct = ((ongoing_projects / project_total) * 100)|round|int if project_total > 0 else 0 %}
+                    {% set completed_pct = ((completed_projects / project_total) * 100)|round|int if project_total > 0 else 0 %}
+                    {% set rejected_pct = 100 - ongoing_pct - completed_pct if project_total > 0 else 0 %}
+
+                    <div class="admin-kpi-grid">
+                        <div class="admin-kpi-card">
+                            <div class="kpi-head">
+                                <span class="kpi-icon" style="background:#e8efff;color:#1d4ed8;"><i class="bi bi-people"></i></span>
+                                <span class="kpi-value">{{ total_users }}</span>
+                            </div>
+                            <div class="kpi-label">Total Users</div>
+                            <div class="kpi-sub">All registered users</div>
+                            <a href="#" class="kpi-link section-link" data-section="users">View all users <i class="bi bi-arrow-right"></i></a>
                         </div>
-                        <div class="stat-card success">
-                            <i class="bi bi-folder2"></i>
-                            <div class="stat-value">{{ total_projects }}</div>
-                            <div class="stat-label">Projects</div>
+
+                        <div class="admin-kpi-card">
+                            <div class="kpi-head">
+                                <span class="kpi-icon" style="background:#e7f9ef;color:#059669;"><i class="bi bi-folder2-open"></i></span>
+                                <span class="kpi-value">{{ total_projects }}</span>
+                            </div>
+                            <div class="kpi-label">Total Projects</div>
+                            <div class="kpi-sub">All FYP projects</div>
+                            <a href="#" class="kpi-link section-link" data-section="group-projects">View all projects <i class="bi bi-arrow-right"></i></a>
                         </div>
-                        <div class="stat-card warning">
-                            <i class="bi bi-clock-history"></i>
-                            <div class="stat-value">{{ on_track + at_risk + delayed }}</div>
-                            <div class="stat-label">Active</div>
+
+                        <div class="admin-kpi-card">
+                            <div class="kpi-head">
+                                <span class="kpi-icon" style="background:#fff4e5;color:#d97706;"><i class="bi bi-arrow-repeat"></i></span>
+                                <span class="kpi-value">{{ ongoing_projects }}</span>
+                            </div>
+                            <div class="kpi-label">Ongoing Projects</div>
+                            <div class="kpi-sub">Currently in progress</div>
+                            <a href="#" class="kpi-link section-link" data-section="group-projects">View ongoing <i class="bi bi-arrow-right"></i></a>
                         </div>
-                        <div class="stat-card danger">
-                            <i class="bi bi-exclamation-triangle"></i>
-                            <div class="stat-value">{{ delayed }}</div>
-                            <div class="stat-label">Delayed</div>
+
+                        <div class="admin-kpi-card">
+                            <div class="kpi-head">
+                                <span class="kpi-icon" style="background:#e8fbef;color:#16a34a;"><i class="bi bi-check2-circle"></i></span>
+                                <span class="kpi-value">{{ completed_projects }}</span>
+                            </div>
+                            <div class="kpi-label">Completed Projects</div>
+                            <div class="kpi-sub">Successfully completed</div>
+                            <a href="#" class="kpi-link section-link" data-section="group-projects">View completed <i class="bi bi-arrow-right"></i></a>
+                        </div>
+
+                        <div class="admin-kpi-card">
+                            <div class="kpi-head">
+                                <span class="kpi-icon" style="background:#ffecee;color:#ef4444;"><i class="bi bi-x-circle"></i></span>
+                                <span class="kpi-value">{{ rejected_projects }}</span>
+                            </div>
+                            <div class="kpi-label">Rejected Projects</div>
+                            <div class="kpi-sub">Not approved</div>
+                            <a href="#" class="kpi-link section-link" data-section="group-projects">View rejected <i class="bi bi-arrow-right"></i></a>
                         </div>
                     </div>
 
-                    <!-- Quick Actions -->
-                    <div class="quick-actions">
-                        <a href="#" class="quick-action-card" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                            <i class="bi bi-person-plus"></i>
-                            <h5>Add User</h5>
-                            <p>Create new user account</p>
+                    <div class="admin-action-grid">
+                        <a href="#" class="admin-action-tile" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                            <span class="icon" style="background:#eef2ff;color:#4f46e5;"><i class="bi bi-person-plus"></i></span>
+                            <div>
+                                <div class="title">Add User</div>
+                                <div class="sub">Create new user account</div>
+                            </div>
                         </a>
-                        <a href="#" class="quick-action-card" data-bs-toggle="modal" data-bs-target="#addProjectModal">
-                            <i class="bi bi-plus-circle"></i>
-                            <h5>New Project</h5>
-                            <p>Create new project</p>
+                        <a href="{{ url_for('admin_scheduling') }}" class="admin-action-tile">
+                            <span class="icon" style="background:#f5f3ff;color:#7c3aed;"><i class="bi bi-calendar3"></i></span>
+                            <div>
+                                <div class="title">Schedule</div>
+                                <div class="sub">Manage schedules</div>
+                            </div>
                         </a>
-                        <a href="{{ url_for('admin_scheduling') }}" class="quick-action-card">
-                            <i class="bi bi-calendar-plus"></i>
-                            <h5>Schedule</h5>
-                            <p>Manage schedules</p>
-                        </a>
-                        <a href="#" class="quick-action-card section-link" data-section="reports">
-                            <i class="bi bi-graph-up"></i>
-                            <h5>Reports</h5>
-                            <p>View analytics</p>
+                        <a href="#" class="admin-action-tile section-link" data-section="reports">
+                            <span class="icon" style="background:#eff6ff;color:#2563eb;"><i class="bi bi-bar-chart"></i></span>
+                            <div>
+                                <div class="title">Reports</div>
+                                <div class="sub">View system reports</div>
+                            </div>
                         </a>
                     </div>
 
-                    <!-- Recent Activity -->
-                    <div class="row">
-                        <div class="col-lg-8">
-                            <div class="card recent-activity">
-                                <div class="card-header">
-                                    <h5 class="mb-0"><i class="bi bi-activity me-2"></i>Recent Activity</h5>
+                    <div class="row g-3 mb-3">
+                        <div class="col-xl-4">
+                            <div class="dashboard-panel">
+                                <div class="panel-header">
+                                    <h5 class="panel-title"><i class="bi bi-pie-chart me-2"></i>Project Status Overview</h5>
                                 </div>
-                                <div class="card-body">
+                                <div class="panel-body">
+                                    <div class="ring-wrap">
+                                        <div class="ring-chart" style="--ring-value-a: {{ ongoing_pct }}; --ring-value-b: {{ completed_pct }};">
+                                            <div class="ring-center">
+                                                <div class="num">{{ total_projects }}</div>
+                                                <div class="caption">Total Projects</div>
+                                            </div>
+                                        </div>
+                                        <div class="legend-col">
+                                            <div class="legend-row">
+                                                <span class="left"><span class="stat-dot" style="background:#3b82f6;"></span>Ongoing</span>
+                                                <span>{{ ongoing_projects }} ({{ ongoing_pct }}%)</span>
+                                            </div>
+                                            <div class="legend-row">
+                                                <span class="left"><span class="stat-dot" style="background:#10b981;"></span>Completed</span>
+                                                <span>{{ completed_projects }} ({{ completed_pct }}%)</span>
+                                            </div>
+                                            <div class="legend-row">
+                                                <span class="left"><span class="stat-dot" style="background:#ef4444;"></span>Rejected</span>
+                                                <span>{{ rejected_projects }} ({{ rejected_pct }}%)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-4">
+                            <div class="dashboard-panel">
+                                <div class="panel-header">
+                                    <h5 class="panel-title"><i class="bi bi-activity me-2"></i>Recent Activity</h5>
+                                    <a href="#" class="small-link section-link" data-section="reports">View All</a>
+                                </div>
+                                <div class="panel-body">
                                     {% if recent_activities %}
                                         {% for activity in recent_activities %}
-                                        <div class="activity-item">
-                                            <div class="activity-icon {{ activity.icon_class }}">
-                                                <i class="bi {{ activity.icon }}"></i>
-                                            </div>
-                                            <div class="activity-content">
-                                                <div class="activity-title">{{ activity.title }}</div>
-                                                <div class="activity-time">{{ activity.time_ago }}</div>
+                                        <div class="list-row">
+                                            <div class="left">
+                                                <span class="kpi-icon" style="width:30px;height:30px;border-radius:8px;background:#eff6ff;color:#2563eb;"><i class="bi {{ activity.icon }}"></i></span>
+                                                <div>
+                                                    <div class="name">{{ activity.title }}</div>
+                                                    <div class="meta">{{ activity.time_ago }}</div>
+                                                </div>
                                             </div>
                                         </div>
                                         {% endfor %}
                                     {% else %}
-                                        <div class="text-center text-muted py-4">
-                                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
-                                            <p class="mt-2 mb-0">No recent activity yet</p>
-                                        </div>
+                                        <div class="text-muted small">No recent activity found.</div>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
-                        <div class="col-lg-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>System Status</h5>
+
+                        <div class="col-xl-4">
+                            <div class="dashboard-panel">
+                                <div class="panel-header">
+                                    <h5 class="panel-title"><i class="bi bi-shield-check me-2"></i>System Status</h5>
                                 </div>
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center mb-3">
-                                        <div class="me-3">
-                                            <div class="activity-icon {{ 'success' if system_status.db_ok else 'warning' }}">
-                                                <i class="bi bi-database"></i>
-                                            </div>
+                                <div class="panel-body">
+                                    <div class="status-row">
+                                        <div class="left">
+                                            <span class="stat-dot" style="background:#22c55e;width:12px;height:12px;"></span>
+                                            <div class="name">Database</div>
                                         </div>
-                                        <div>
-                                            <div class="activity-title">Database</div>
-                                            <div class="activity-time">{{ system_status.db_status }}</div>
-                                        </div>
+                                        <span class="status-pill online">{{ 'Online' if system_status.db_ok else 'Issue' }}</span>
                                     </div>
-                                    <div class="d-flex align-items-center mb-3">
-                                        <div class="me-3">
-                                            <div class="activity-icon info">
-                                                <i class="bi bi-people"></i>
-                                            </div>
+                                    <div class="status-row">
+                                        <div class="left">
+                                            <span class="stat-dot" style="background:#22c55e;width:12px;height:12px;"></span>
+                                            <div class="name">Server</div>
                                         </div>
-                                        <div>
-                                            <div class="activity-title">Total Users</div>
-                                            <div class="activity-time">{{ system_status.total_users }} registered</div>
-                                        </div>
+                                        <span class="status-pill online">Online</span>
                                     </div>
-                                    <div class="d-flex align-items-center mb-3">
-                                        <div class="me-3">
-                                            <div class="activity-icon success">
-                                                <i class="bi bi-diagram-3"></i>
-                                            </div>
+                                    <div class="status-row">
+                                        <div class="left">
+                                            <span class="stat-dot" style="background:#22c55e;width:12px;height:12px;"></span>
+                                            <div class="name">Storage</div>
                                         </div>
-                                        <div>
-                                            <div class="activity-title">Groups</div>
-                                            <div class="activity-time">{{ system_status.total_groups }} active</div>
-                                        </div>
+                                        <span class="status-pill warning">75% Used</span>
                                     </div>
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-3">
-                                            <div class="activity-icon {{ 'warning' if system_status.pending_vivas > 0 else 'success' }}">
-                                                <i class="bi bi-calendar-check"></i>
-                                            </div>
+                                    <div class="status-row">
+                                        <div class="left">
+                                            <span class="stat-dot" style="background:#22c55e;width:12px;height:12px;"></span>
+                                            <div class="name">Backup</div>
                                         </div>
-                                        <div>
-                                            <div class="activity-title">Vivas</div>
-                                            <div class="activity-time">{{ system_status.pending_vivas }} pending of {{ system_status.total_vivas }} total</div>
+                                        <span class="meta">Last backup: Today, 2:00 AM</span>
+                                    </div>
+                                    <div class="status-row">
+                                        <div class="left">
+                                            <span class="stat-dot" style="background:#22c55e;width:12px;height:12px;"></span>
+                                            <div class="name">Mail Service</div>
                                         </div>
+                                        <span class="status-pill online">Online</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- System Analytics -->
-                    <div class="card mt-4 mb-4">
-                        <div class="card-header bg-white"><h5 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>System Analytics</h5></div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>User Distribution by Role</h6>
-                                    <div class="mb-4">
-                                        {% set total_u = students|length + teachers|length + supervisors|length + admins|length %}
-                                        {% set student_percent = (students|length / total_u * 100)|round|int if total_u > 0 else 0 %}
-                                        {% set teacher_percent = (teachers|length / total_u * 100)|round|int if total_u > 0 else 0 %}
-                                        {% set supervisor_percent = (supervisors|length / total_u * 100)|round|int if total_u > 0 else 0 %}
-                                        {% set admin_percent = (admins|length / total_u * 100)|round|int if total_u > 0 else 0 %}
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ student_percent }}%;">Students ({{ student_percent }}%)</div>
-                                        </div>
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ teacher_percent }}%;">Teachers ({{ teacher_percent }}%)</div>
-                                        </div>
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ supervisor_percent }}%;">Supervisors ({{ supervisor_percent }}%)</div>
-                                        </div>
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ admin_percent }}%;">Admins ({{ admin_percent }}%)</div>
-                                        </div>
-                                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-xl-4">
+                            <div class="dashboard-panel">
+                                <div class="panel-header">
+                                    <h5 class="panel-title"><i class="bi bi-pie-chart-fill me-2"></i>Users by Role</h5>
                                 </div>
-                                <div class="col-md-6">
-                                    <h6>Project Status Distribution</h6>
-                                    <div class="mb-4">
-                                        {% set total_p = pending_count + accepted_count + conditional_count + deferred_count %}
-                                        {% set pending_percent = (pending_count / total_p * 100)|round|int if total_p > 0 else 0 %}
-                                        {% set accepted_percent = (accepted_count / total_p * 100)|round|int if total_p > 0 else 0 %}
-                                        {% set conditional_percent = (conditional_count / total_p * 100)|round|int if total_p > 0 else 0 %}
-                                        {% set deferred_percent = (deferred_count / total_p * 100)|round|int if total_p > 0 else 0 %}
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-secondary" role="progressbar" style="width: {{ pending_percent }}%;">Pending ({{ pending_percent }}%)</div>
+                                <div class="panel-body">
+                                    <div class="ring-wrap">
+                                        <div class="ring-chart secondary" style="--ring-value-a: {{ student_pct }}; --ring-value-b: {{ supervisor_pct }};">
+                                            <div class="ring-center">
+                                                <div class="num">{{ role_total }}</div>
+                                                <div class="caption">Total Users</div>
+                                            </div>
                                         </div>
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ accepted_percent }}%;">Accepted ({{ accepted_percent }}%)</div>
-                                        </div>
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ conditional_percent }}%;">Conditional ({{ conditional_percent }}%)</div>
-                                        </div>
-                                        <div class="progress mb-2" style="height: 25px;">
-                                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ deferred_percent }}%;">Deferred ({{ deferred_percent }}%)</div>
+                                        <div class="legend-col">
+                                            <div class="legend-row">
+                                                <span class="left"><span class="stat-dot" style="background:#3b82f6;"></span>Students</span>
+                                                <span>{{ students|length }} ({{ student_pct }}%)</span>
+                                            </div>
+                                            <div class="legend-row">
+                                                <span class="left"><span class="stat-dot" style="background:#10b981;"></span>Supervisors</span>
+                                                <span>{{ supervisors|length }} ({{ supervisor_pct }}%)</span>
+                                            </div>
+                                            <div class="legend-row">
+                                                <span class="left"><span class="stat-dot" style="background:#8b5cf6;"></span>Coordinators</span>
+                                                <span>{{ teachers|length }} ({{ coordinator_pct }}%)</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="row mt-4">
-                                <div class="col-md-12">
-                                    <h6>System Usage Analytics</h6>
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered">
-                                            <thead class="table-light">
-                                                <tr><th>Metric</th><th>Last 7 Days</th><th>Last 30 Days</th><th>Trend</th></tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td>Login Activity</td><td>{{ logins_7_days }} logins</td><td>{{ logins_30_days }} logins</td>
-                                                    <td><span class="text-{% if login_trend > 0 %}success{% elif login_trend < 0 %}danger{% else %}muted{% endif %}">{% if login_trend > 0 %}<i class="bi bi-arrow-up"></i> +{{ login_trend }}%{% elif login_trend < 0 %}<i class="bi bi-arrow-down"></i> {{ login_trend }}%{% else %}<i class="bi bi-dash"></i> 0%{% endif %}</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>New Users</td><td>{{ new_users_7_days }} users</td><td>{{ new_users_30_days }} users</td>
-                                                    <td><span class="text-{% if user_trend > 0 %}success{% elif user_trend < 0 %}danger{% else %}muted{% endif %}">{% if user_trend > 0 %}<i class="bi bi-arrow-up"></i> +{{ user_trend }}%{% elif user_trend < 0 %}<i class="bi bi-arrow-down"></i> {{ user_trend }}%{% else %}<i class="bi bi-dash"></i> 0%{% endif %}</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Project Activity</td><td>{{ project_activity_7_days }} updates</td><td>{{ project_activity_30_days }} updates</td>
-                                                    <td><span class="text-{% if project_trend > 0 %}success{% elif project_trend < 0 %}danger{% else %}muted{% endif %}">{% if project_trend > 0 %}<i class="bi bi-arrow-up"></i> +{{ project_trend }}%{% elif project_trend < 0 %}<i class="bi bi-arrow-down"></i> {{ project_trend }}%{% else %}<i class="bi bi-dash"></i> 0%{% endif %}</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Remarks Added</td><td>{{ remarks_7_days }} remarks</td><td>{{ remarks_30_days }} remarks</td>
-                                                    <td><span class="text-{% if remarks_trend > 0 %}success{% elif remarks_trend < 0 %}danger{% else %}muted{% endif %}">{% if remarks_trend > 0 %}<i class="bi bi-arrow-up"></i> +{{ remarks_trend }}%{% elif remarks_trend < 0 %}<i class="bi bi-arrow-down"></i> {{ remarks_trend }}%{% else %}<i class="bi bi-dash"></i> 0%{% endif %}</span></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
+                        </div>
+
+                        <div class="col-xl-4">
+                            <div class="dashboard-panel">
+                                <div class="panel-header">
+                                    <h5 class="panel-title"><i class="bi bi-calendar-event me-2"></i>Upcoming Schedules</h5>
+                                    <a href="{{ url_for('admin_scheduling') }}" class="small-link">View All</a>
+                                </div>
+                                <div class="panel-body">
+                                    {% if upcoming_schedules %}
+                                        {% for viva in upcoming_schedules %}
+                                        <div class="list-row">
+                                            <div class="left">
+                                                <span class="kpi-icon" style="width:30px;height:30px;border-radius:8px;background:#eef2ff;color:#4f46e5;"><i class="bi bi-calendar-check"></i></span>
+                                                <div>
+                                                    <div class="name">{{ viva.group.group_id if viva.group else 'Group' }}{% if viva.group and viva.group.project_title %} - {{ viva.group.project_title }}{% endif %}</div>
+                                                    <div class="meta">{{ viva.scheduled_date.strftime('%b %d, %Y') }} · {{ viva.scheduled_time }}</div>
+                                                </div>
+                                            </div>
+                                            <span class="status-pill upcoming">Upcoming</span>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="text-muted small">No upcoming schedules found.</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-4">
+                            <div class="dashboard-panel">
+                                <div class="panel-header">
+                                    <h5 class="panel-title"><i class="bi bi-bell me-2"></i>Notifications</h5>
+                                    <a href="#" class="small-link section-link" data-section="reports">View All</a>
+                                </div>
+                                <div class="panel-body">
+                                    {% if dashboard_notifications %}
+                                        {% for item in dashboard_notifications %}
+                                        <div class="list-row">
+                                            <div class="left">
+                                                <span class="kpi-icon" style="width:30px;height:30px;border-radius:8px;background:#eff6ff;color:#2563eb;"><i class="bi {{ item.icon }}"></i></span>
+                                                <div>
+                                                    <div class="name">{{ item.title }}</div>
+                                                    <div class="meta">{{ item.subtitle }}</div>
+                                                </div>
+                                            </div>
+                                            <span class="meta">{{ item.time }}</span>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="text-muted small">No notifications at the moment.</div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -637,10 +1087,12 @@
                 <div id="users" class="content-section">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h2>User Management</h2>
+                        {% if can_create_users %}
                         <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                             data-bs-target="#addUserModal">
                             <i class="bi bi-person-plus me-2"></i>Add User
                         </button>
+                        {% endif %}
                     </div>
 
                     <!-- Search and Filter Bar -->
@@ -658,9 +1110,8 @@
                                 <select class="form-select" name="role">
                                     <option value="all" {% if role_filter=='all' or not role_filter %}selected{% endif %}>All Roles</option>
                                     <option value="student" {% if role_filter=='student' %}selected{% endif %}>Students</option>
-                                    <option value="faculty" {% if role_filter=='faculty' %}selected{% endif %}>Faculty</option>
+                                    <option value="cordinator" {% if role_filter=='cordinator' %}selected{% endif %}>cordinator</option>
                                     <option value="supervisor" {% if role_filter=='supervisor' %}selected{% endif %}>Supervisors</option>
-                                    <option value="admin" {% if role_filter=='admin' %}selected{% endif %}>Admins</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -707,49 +1158,29 @@
                                         <td>{{ user.first_name }} {{ user.last_name }}</td>
                                         <td>{{ user.email }}</td>
                                         <td>
-                                            <span class="badge {% if user.role == 'admin' %}bg-danger{% elif user.role == 'teacher' %}bg-primary{% elif user.role == 'supervisor' %}bg-success{% else %}bg-info{% endif %}">
+                                            <span class="badge {% if user.role == 'admin' %}bg-danger{% elif user.role == 'teacher' %}bg-primary{% elif user.role == 'supervisor' %}bg-success{% elif user.role == 'cordinator' %}bg-warning text-dark{% else %}bg-info{% endif %}">
                                                 {{ user.role|title }}
                                             </span>
                                         </td>
                                         <td>
-                                            {% if user.role == 'student' or user.role == 'supervisor' %}
-                                            <button class="btn btn-sm btn-outline-info view-profile-btn"
-                                                data-bs-toggle="modal" data-bs-target="#userProfileModal"
-                                                data-user-id="{{ user.id }}"
-                                                data-user-name="{{ user.first_name }} {{ user.last_name }}"
-                                                data-user-email="{{ user.email }}" data-user-role="{{ user.role }}"
-                                                {% if user.profile %}
-                                                    {% if user.role=='student' %}
-                                                    data-program="{{ user.profile.program }}"
-                                                    data-semester="{{ user.profile.semester }}"
-                                                    {% elif user.role=='supervisor' %}
-                                                    data-degree="{{ user.profile.highest_degree }}"
-                                                    data-specialization="{{ user.profile.specialization }}"
-                                                    data-affiliation="{{ user.profile.affiliation }}"
-                                                    data-other-affiliation="{{ user.profile.other_affiliation }}"
-                                                    {% endif %}
-                                                {% endif %}>
-                                                <i class="bi bi-eye me-1"></i>View Profile
-                                            </button>
+                                            {% if user.id != current_user.id %}
+                                            <a href="{{ url_for('admin_view_user', user_id=user.id) }}" class="btn btn-outline-info btn-sm" title="View user profile and reset password">
+                                                <i class="bi bi-eye me-1"></i>View
+                                            </a>
                                             {% else %}
-                                            <span class="text-muted">No profile data</span>
+                                            <span class="text-muted">—</span>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <button class="btn btn-sm btn-outline-primary edit-user-btn"
-                                                data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}"
-                                                data-user-id="{{ user.id }}" data-first-name="{{ user.first_name }}"
-                                                data-last-name="{{ user.last_name }}" data-email="{{ user.email }}"
-                                                data-role="{{ user.role }}">
-                                                <i class="bi bi-pencil me-1"></i>Edit
-                                            </button>
                                             {% if user.id != current_user.id %}
-                                            <button class="btn btn-sm btn-outline-danger delete-user-btn"
-                                                data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id }}"
-                                                data-user-id="{{ user.id }}"
-                                                data-user-name="{{ user.first_name }} {{ user.last_name }}">
-                                                <i class="bi bi-trash me-1"></i>Delete
-                                            </button>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button class="btn btn-sm btn-outline-danger delete-user-btn"
+                                                    data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id }}"
+                                                    data-user-id="{{ user.id }}"
+                                                    data-user-name="{{ user.first_name }} {{ user.last_name }}" title="Delete user">
+                                                    <i class="bi bi-trash me-1"></i>Delete
+                                                </button>
+                                            </div>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -804,37 +1235,69 @@
 
                 <!-- Group Projects Section -->
                 <div id="group-projects" class="content-section">
-                    <h2 class="mb-4">Group Projects Management</h2>
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div>
-                            <span class="badge bg-primary fs-6 me-2">{{ total_groups }}</span>
-                            <span class="text-muted">Total Group Projects</span>
-                        </div>
-                        <div class="d-flex">
-                            <div class="input-group me-2">
-                                <input type="text" class="form-control" placeholder="Search projects...">
-                                <button class="btn btn-outline-secondary" type="button"><i class="bi bi-search"></i></button>
+                    <h2 class="mb-4">Project Monitoring Dashboard</h2>
+                    <form method="GET" class="card mb-4 p-3" id="projectSearchForm">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <span class="badge bg-primary fs-6 me-2">{{ total_projects }}</span>
+                                <span class="text-muted">Total Projects</span>
                             </div>
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProjectModal">
-                                <i class="bi bi-plus-circle"></i> Add Project
-                            </button>
                         </div>
-                    </div>
+                        <div class="row g-3 align-items-end">
+                            <div class="col-lg-4">
+                                <label class="form-label small text-muted mb-1">Search Projects</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" name="project_search" placeholder="Search projects..." value="{{ project_search_query }}">
+                                    <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+                                </div>
+                            </div>
+                            <div class="col-lg-2">
+                                <label class="form-label small text-muted mb-1">Filter by Department</label>
+                                <select class="form-select" name="department">
+                                    <option value="all" {% if project_department_filter == 'all' %}selected{% endif %}>All Departments</option>
+                                    {% for department in project_departments %}
+                                    <option value="{{ department }}" {% if project_department_filter == department %}selected{% endif %}>{{ department }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-lg-2">
+                                <label class="form-label small text-muted mb-1">Filter by Status</label>
+                                <select class="form-select" name="status">
+                                    <option value="all" {% if project_status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                                    <option value="Pending" {% if project_status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Accepted" {% if project_status_filter == 'Accepted' %}selected{% endif %}>Accepted</option>
+                                    <option value="Conditionally Accepted" {% if project_status_filter == 'Conditionally Accepted' %}selected{% endif %}>Conditionally Accepted</option>
+                                    <option value="Deferred" {% if project_status_filter == 'Deferred' %}selected{% endif %}>Deferred</option>
+                                    <option value="Completed" {% if project_status_filter == 'Completed' %}selected{% endif %}>Completed</option>
+                                </select>
+                            </div>
+                            <div class="col-lg-2">
+                                <label class="form-label small text-muted mb-1">Filter by Semester</label>
+                                <select class="form-select" name="semester">
+                                    <option value="all" {% if project_semester_filter == 'all' %}selected{% endif %}>All Semesters</option>
+                                    {% for semester in project_semesters %}
+                                    <option value="{{ semester }}" {% if project_semester_filter == semester %}selected{% endif %}>Semester {{ semester }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-lg-2 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-grow-1">Apply</button>
+                                <a href="{{ url_for('dashboard_admin') }}#group-projects" class="btn btn-outline-secondary">Reset</a>
+                            </div>
+                        </div>
+                    </form>
                     <div class="row mb-4">
                         <div class="col">
-                            <div class="card border-secondary"><div class="card-body text-center"><h5 class="card-title">Pending</h5><h3>{{ pending_count }}</h3></div></div>
+                            <div class="card border-secondary"><div class="card-body text-center"><h5 class="card-title">Total Projects</h5><h3>{{ total_projects }}</h3></div></div>
                         </div>
                         <div class="col">
-                            <div class="card border-success"><div class="card-body text-center"><h5 class="card-title">Accepted</h5><h3>{{ accepted_count }}</h3></div></div>
+                            <div class="card border-warning"><div class="card-body text-center"><h5 class="card-title">Ongoing Projects</h5><h3>{{ ongoing_projects }}</h3></div></div>
                         </div>
                         <div class="col">
-                            <div class="card border-warning"><div class="card-body text-center"><h5 class="card-title">Conditional</h5><h3>{{ conditional_count }}</h3></div></div>
+                            <div class="card border-success"><div class="card-body text-center"><h5 class="card-title">Completed Projects</h5><h3>{{ completed_projects }}</h3></div></div>
                         </div>
                         <div class="col">
-                            <div class="card border-danger"><div class="card-body text-center"><h5 class="card-title">Deferred</h5><h3>{{ deferred_count }}</h3></div></div>
-                        </div>
-                        <div class="col">
-                            <div class="card border-info"><div class="card-body text-center"><h5 class="card-title">Completed</h5><h3>{{ completed }}</h3></div></div>
+                            <div class="card border-danger"><div class="card-body text-center"><h5 class="card-title">Rejected Projects</h5><h3>{{ rejected_projects }}</h3></div></div>
                         </div>
                     </div>
                     <div class="card">
@@ -846,36 +1309,41 @@
                                 <table class="table table-hover table-striped m-0">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>ID</th><th>Project Title</th><th>Supervisor</th><th>Members</th><th>Status</th><th>Actions</th>
+                                            <th>ID</th><th>Project Title</th><th>Department</th><th>Status</th><th>Progress</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {% for group in groups %}
+                                        {% for group in project_groups %}
                                         <tr>
-                                            <td>{{ loop.index }}</td>
+                                            <td>{{ group.group_id }}</td>
                                             <td>{{ group.project_title }}</td>
                                             <td>
-                                                {% if group.supervisor %}
-                                                {{ group.supervisor.first_name }} {{ group.supervisor.last_name }}
+                                                {% if group.supervisor and group.supervisor.department %}
+                                                {{ group.supervisor.department }}
                                                 {% else %}<span class="text-muted">Not Assigned</span>{% endif %}
                                             </td>
                                             <td>
-                                                <button class="btn btn-sm btn-outline-primary view-members-btn" data-group-id="{{ group.id }}">
-                                                    <i class="bi bi-people"></i> View
-                                                </button>
-                                            </td>
-                                            <td>
                                                 {% set latest_status = group.statuses|sort(attribute='created_at', reverse=True)|first %}
-                                                {% if latest_status %}
-                                                <span class="badge {% if latest_status.status == 'Accepted' %}bg-success{% elif latest_status.status == 'Conditionally Accepted' %}bg-warning{% elif latest_status.status == 'Deferred' %}bg-danger{% elif latest_status.status == 'Completed' %}bg-info{% else %}bg-secondary{% endif %}">
-                                                    {{ latest_status.status }}
+                                                <span class="badge {% if latest_status and latest_status.status == 'Completed' %}bg-success{% elif latest_status and latest_status.status in ['Accepted', 'Conditionally Accepted'] %}bg-warning{% elif latest_status and latest_status.status == 'Deferred' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                                    {% if latest_status %}{{ latest_status.status }}{% else %}Pending{% endif %}
                                                 </span>
-                                                {% else %}<span class="badge bg-secondary">Pending</span>{% endif %}
                                             </td>
                                             <td>
-                                                <button class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#viewProjectModal{{ group.id }}"><i class="bi bi-eye"></i></button>
-                                                <button class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal" data-bs-target="#editProjectModal{{ group.id }}"><i class="bi bi-pencil"></i></button>
-                                                <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteProjectModal{{ group.id }}"><i class="bi bi-trash"></i></button>
+                                                {% set progress_value = group.details.progress if group.details else 0 %}
+                                                <div class="progress" style="height: 24px;">
+                                                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ progress_value }}%;">
+                                                        {{ progress_value }}%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4">
+                                                <div class="text-muted">
+                                                    <i class="bi bi-search" style="font-size: 2rem;"></i>
+                                                    <p class="mt-2 mb-0">No projects found matching your filters.</p>
+                                                </div>
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -888,35 +1356,108 @@
 
                 <!-- Groups Section -->
                 <div id="groups" class="content-section">
-                    <h2 class="mb-4">Student Groups Management</h2>
+                    <h2 class="mb-4">Group Overview</h2>
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <span class="badge bg-primary fs-6 me-2">{{ total_groups }}</span>
+                            <span class="badge bg-primary fs-6 me-2">{{ total_groups_count }}</span>
                             <span class="text-muted">Total Groups</span>
                         </div>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addGroupModal">
-                            <i class="bi bi-plus-circle"></i> Add Group
-                        </button>
                     </div>
+
+                    <div class="row mb-4">
+                        <div class="col">
+                            <div class="card border-secondary"><div class="card-body text-center"><h5 class="card-title">Total Groups</h5><h3>{{ total_groups_count }}</h3></div></div>
+                        </div>
+                        <div class="col">
+                            <div class="card border-warning"><div class="card-body text-center"><h5 class="card-title">Active Groups</h5><h3>{{ active_groups_count }}</h3></div></div>
+                        </div>
+                        <div class="col">
+                            <div class="card border-success"><div class="card-body text-center"><h5 class="card-title">Completed Groups</h5><h3>{{ completed_groups_count }}</h3></div></div>
+                        </div>
+                        <div class="col">
+                            <div class="card border-danger"><div class="card-body text-center"><h5 class="card-title">Groups Without Supervisor</h5><h3>{{ groups_without_supervisor_count }}</h3></div></div>
+                        </div>
+                    </div>
+
+                    <form method="GET" class="card mb-4 p-3" id="groupFilterForm">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted mb-1">Filter by Department</label>
+                                <select class="form-select" name="group_department">
+                                    <option value="all" {% if group_department_filter == 'all' %}selected{% endif %}>All Departments</option>
+                                    {% for department in group_departments %}
+                                    <option value="{{ department }}" {% if group_department_filter == department %}selected{% endif %}>{{ department }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted mb-1">Filter by Status</label>
+                                <select class="form-select" name="group_status">
+                                    <option value="all" {% if group_status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                                    <option value="Pending" {% if group_status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Accepted" {% if group_status_filter == 'Accepted' %}selected{% endif %}>Accepted</option>
+                                    <option value="Conditionally Accepted" {% if group_status_filter == 'Conditionally Accepted' %}selected{% endif %}>Conditionally Accepted</option>
+                                    <option value="Deferred" {% if group_status_filter == 'Deferred' %}selected{% endif %}>Deferred</option>
+                                    <option value="Completed" {% if group_status_filter == 'Completed' %}selected{% endif %}>Completed</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted mb-1">Filter by Semester</label>
+                                <select class="form-select" name="group_semester">
+                                    <option value="all" {% if group_semester_filter == 'all' %}selected{% endif %}>All Semesters</option>
+                                    {% for semester in group_semesters %}
+                                    <option value="{{ semester }}" {% if group_semester_filter == semester %}selected{% endif %}>Semester {{ semester }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-grow-1">Apply</button>
+                                <a href="{{ url_for('dashboard_admin') }}#groups" class="btn btn-outline-secondary">Reset</a>
+                            </div>
+                        </div>
+                    </form>
+
                     <div class="card">
                         <div class="card-header bg-white"><h5 class="mb-0">Group List</h5></div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table table-hover table-striped m-0">
                                     <thead class="table-light">
-                                        <tr><th>Group ID</th><th>Project Title</th><th>Supervisor</th><th>Members</th><th>Status</th><th>Actions</th></tr>
+                                        <tr><th>Group ID</th><th>Department</th><th>Members Count</th><th>Status</th><th>Progress</th><th>View</th></tr>
                                     </thead>
                                     <tbody>
-                                        {% for group in groups %}
+                                        {% for group in groups_filtered %}
                                         <tr>
                                             <td>{{ group.group_id }}</td>
-                                            <td>{{ group.project_title }}</td>
-                                            <td>{% if group.supervisor %}{{ group.supervisor.first_name }} {{ group.supervisor.last_name }}{% else %}<span class="text-muted">Not Assigned</span>{% endif %}</td>
-                                            <td><button class="btn btn-sm btn-outline-primary view-members-btn" data-group-id="{{ group.id }}"><i class="bi bi-people"></i> View</button></td>
-                                            <td><span class="badge bg-success">Active</span></td>
+                                            <td>{% if group.supervisor and group.supervisor.department %}{{ group.supervisor.department }}{% else %}<span class="text-muted">Not Assigned</span>{% endif %}</td>
+                                            <td>{{ group.members|length }}</td>
                                             <td>
-                                                <button class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editGroupModal{{ group.id }}"><i class="bi bi-pencil"></i></button>
-                                                <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteGroupModal{{ group.id }}"><i class="bi bi-trash"></i></button>
+                                                {% set latest_status = group.statuses|sort(attribute='created_at', reverse=True)|first %}
+                                                <span class="badge {% if latest_status and latest_status.status == 'Completed' %}bg-success{% elif latest_status and latest_status.status in ['Accepted', 'Conditionally Accepted'] %}bg-warning{% elif latest_status and latest_status.status == 'Deferred' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                                    {% if latest_status %}{{ latest_status.status }}{% else %}Pending{% endif %}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% set progress_value = group.details.progress if group.details else 0 %}
+                                                <div class="progress" style="height: 24px;">
+                                                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ progress_value }}%;">
+                                                        {{ progress_value }}%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary view-members-btn" data-group-id="{{ group.id }}">
+                                                    <i class="bi bi-eye"></i> View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4">
+                                                <div class="text-muted">
+                                                    <i class="bi bi-search" style="font-size: 2rem;"></i>
+                                                    <p class="mt-2 mb-0">No groups found matching your filters.</p>
+                                                </div>
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -1260,7 +1801,10 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header"><h5 class="modal-title" id="membersModalLabel">Group Members</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body"><p class="text-muted">Loading members...</p></div>
+                <div class="modal-body">
+                    <div id="membersModalSummary" class="mb-3"></div>
+                    <div id="membersModalList"><p class="text-muted mb-0">Loading members...</p></div>
+                </div>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
@@ -1271,11 +1815,11 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header"><h5 class="modal-title" id="addProjectModalLabel">Add New Project</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <form action="{{ url_for('admin_add_project') }}" method="POST">
+                <form id="addProjectForm" action="{{ url_for('admin_add_project') }}" method="POST" autocomplete="off">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="modal-body">
-                        <div class="mb-3"><label for="group_id" class="form-label">Group ID</label><input type="text" class="form-control" id="group_id" name="group_id" placeholder="e.g., G01 (auto-generated if empty)"><small class="form-text text-muted">Leave empty to auto-generate</small></div>
-                        <div class="mb-3"><label for="project_title" class="form-label">Project Title <span class="text-danger">*</span></label><input type="text" class="form-control" id="project_title" name="project_title" required></div>
+                        <div class="mb-3"><label for="group_id" class="form-label">Group ID</label><input type="text" class="form-control" id="group_id" name="group_id" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="e.g., G01 (auto-generated if empty)"><small class="form-text text-muted">Leave empty to auto-generate</small></div>
+                        <div class="mb-3"><label for="project_title" class="form-label">Project Title <span class="text-danger">*</span></label><input type="text" class="form-control" id="project_title" name="project_title" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" required></div>
                         <div class="mb-3">
                             <label for="supervisor_id" class="form-label">Supervisor</label>
                             <select class="form-select" id="supervisor_id" name="supervisor_id">
@@ -1309,60 +1853,152 @@
         </div>
     </div>
 
-    <!-- Add Group Modal -->
-    <div class="modal fade" id="addGroupModal" tabindex="-1" aria-labelledby="addGroupModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title" id="addGroupModalLabel">Add New Group</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <form action="{{ url_for('admin_add_project') }}" method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="modal-body">
-                        <div class="mb-3"><label for="group_id_new" class="form-label">Group ID</label><input type="text" class="form-control" id="group_id_new" name="group_id" placeholder="e.g., G01" required></div>
-                        <div class="mb-3"><label for="group_project_title" class="form-label">Project Title</label><input type="text" class="form-control" id="group_project_title" name="project_title" required></div>
-                        <div class="mb-3">
-                            <label class="form-label">Select Students <span class="text-danger">*</span></label>
-                            <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto; background-color: #f8f9fa;">
-                                {% for student in students %}
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="student_ids" value="{{ student.id }}" id="student_{{ student.id }}">
-                                    <label class="form-check-label" for="student_{{ student.id }}">{{ student.first_name }} {{ student.last_name }} ({{ student.email }})</label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add Group</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- Add User Modal -->
     <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header"><h5 class="modal-title" id="addUserModalLabel">Add New User</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <form action="{{ url_for('admin_add_user') }}" method="POST">
+                <form id="addUserForm" action="{{ url_for('admin_add_user') }}" method="POST" autocomplete="off">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="modal-body">
-                        <div class="mb-3"><label for="email" class="form-label">Email</label><input type="email" class="form-control" id="email" name="email" required></div>
-                        <div class="row">
-                            <div class="col-md-6"><div class="mb-3"><label for="firstName" class="form-label">First Name</label><input type="text" class="form-control" id="firstName" name="firstName" required></div></div>
-                            <div class="col-md-6"><div class="mb-3"><label for="lastName" class="form-label">Last Name</label><input type="text" class="form-control" id="lastName" name="lastName" required></div></div>
-                        </div>
+                        <input type="text" name="fakeusernameremembered" autocomplete="username" style="display:none;">
+                        <input type="password" name="fakepasswordremembered" autocomplete="current-password" style="display:none;">
                         <div class="mb-3">
-                            <label for="role" class="form-label">Role</label>
-                            <select class="form-select" id="role" name="role" required>
+                            <label for="addUserRole" class="form-label">Role <span class="text-danger">*</span></label>
+                            <select class="form-select" id="addUserRole" name="role" autocomplete="off" required>
                                 <option value="" selected disabled>Select a role</option>
                                 <option value="student">Student</option>
-                                <option value="faculty">Faculty</option>
+                                <option value="cordinator">Cordinator</option>
                                 <option value="supervisor">Supervisor</option>
                             </select>
                         </div>
-                        <div class="mb-3"><label for="password" class="form-label">Password</label><input type="password" class="form-control" id="password" name="password" required></div>
+
+                        <div class="row">
+                            <div class="col-md-6"><div class="mb-3"><label for="firstName" class="form-label">First Name <span class="text-danger">*</span></label><input type="text" class="form-control" id="firstName" name="firstName" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" required></div></div>
+                            <div class="col-md-6"><div class="mb-3"><label for="lastName" class="form-label">Last Name <span class="text-danger">*</span></label><input type="text" class="form-control" id="lastName" name="lastName" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" required></div></div>
+                        </div>
+
+                        <div class="mb-3"><label for="email" class="form-label">Email <span class="text-danger">*</span></label><input type="email" class="form-control" id="email" name="email" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" required></div>
+
+                        <div id="studentFields" class="d-none border rounded p-3 mb-3">
+                            <h6 class="mb-3">Student Details</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="studentDepartment" class="form-label">Department <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="studentDepartment" name="department" required>
+                                            <option value="" selected disabled>Select department</option>
+                                            <optgroup label="Computing / IT Fields">
+                                                <option value="Computer Science (CS)">Computer Science (CS)</option>
+                                                <option value="Information Technology (IT)">Information Technology (IT)</option>
+                                                <option value="Software Engineering (SE)">Software Engineering (SE)</option>
+                                                <option value="Artificial Intelligence (AI)">Artificial Intelligence (AI)</option>
+                                                <option value="Cyber Security (CY)">Cyber Security (CY)</option>
+                                                <option value="Data Science">Data Science</option>
+                                            </optgroup>
+                                            <optgroup label="Engineering Fields">
+                                                <option value="Electrical Engineering">Electrical Engineering</option>
+                                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                                <option value="Civil Engineering">Civil Engineering</option>
+                                                <option value="Chemical Engineering">Chemical Engineering</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="studentProgram" class="form-label">Program <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="studentProgram" name="program" required>
+                                            <option value="" selected disabled>Select program</option>
+                                            <optgroup label="Computing / IT Fields">
+                                                <option value="Computer Science (CS)">Computer Science (CS)</option>
+                                                <option value="Information Technology (IT)">Information Technology (IT)</option>
+                                                <option value="Software Engineering (SE)">Software Engineering (SE)</option>
+                                                <option value="Artificial Intelligence (AI)">Artificial Intelligence (AI)</option>
+                                                <option value="Cyber Security (CY)">Cyber Security (CY)</option>
+                                                <option value="Data Science">Data Science</option>
+                                            </optgroup>
+                                            <optgroup label="Engineering Fields">
+                                                <option value="Electrical Engineering">Electrical Engineering</option>
+                                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                                <option value="Civil Engineering">Civil Engineering</option>
+                                                <option value="Chemical Engineering">Chemical Engineering</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="studentSemester" class="form-label">Semester <span class="text-danger">*</span></label>
+                                        <input type="number" min="1" max="12" class="form-control" id="studentSemester" name="semester">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="studentSection" class="form-label">Section <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="studentSection" name="section">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="studentBatch" class="form-label">Batch <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="studentBatch" name="batch">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="staffFields" class="d-none border rounded p-3 mb-3">
+                            <h6 class="mb-3">Supervisor/Cordinator Details</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="staffEmpId" class="form-label">Employee ID (Optional)</label>
+                                        <input type="text" class="form-control" id="staffEmpId" name="emp_id">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="staffDepartment" class="form-label">Teaching Department <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="staffDepartment" name="department" required>
+                                            <option value="" selected disabled>Select teaching department</option>
+                                            <optgroup label="Computing / IT Fields">
+                                                <option value="Computer Science (CS)">Computer Science (CS)</option>
+                                                <option value="Information Technology (IT)">Information Technology (IT)</option>
+                                                <option value="Software Engineering (SE)">Software Engineering (SE)</option>
+                                                <option value="Artificial Intelligence (AI)">Artificial Intelligence (AI)</option>
+                                                <option value="Cyber Security (CY)">Cyber Security (CY)</option>
+                                                <option value="Data Science">Data Science</option>
+                                            </optgroup>
+                                            <optgroup label="Engineering Fields">
+                                                <option value="Electrical Engineering">Electrical Engineering</option>
+                                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                                <option value="Civil Engineering">Civil Engineering</option>
+                                                <option value="Chemical Engineering">Chemical Engineering</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="staffDegree" class="form-label">Highest Degree <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="staffDegree" name="highest_degree">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="staffSpecialization" class="form-label">Specialization</label>
+                                        <input type="text" class="form-control" id="staffSpecialization" name="specialization">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3"><label for="password" class="form-label">Account Password <span class="text-danger">*</span></label><input type="password" class="form-control" id="password" name="password" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" minlength="8" required><small class="text-muted">Minimum 8 characters</small></div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -1373,40 +2009,7 @@
         </div>
     </div>
 
-    <!-- Edit User Modals -->
-    {% for user in users %}
-    <div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">Edit User</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <form action="{{ url_for('admin_edit_user', user_id=user.id) }}" method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="modal-body">
-                        <div class="mb-3"><label class="form-label">Email</label><input type="email" class="form-control" name="email" value="{{ user.email }}" required></div>
-                        <div class="row">
-                            <div class="col-md-6"><div class="mb-3"><label class="form-label">First Name</label><input type="text" class="form-control" name="firstName" value="{{ user.first_name }}" required></div></div>
-                            <div class="col-md-6"><div class="mb-3"><label class="form-label">Last Name</label><input type="text" class="form-control" name="lastName" value="{{ user.last_name }}" required></div></div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Role</label>
-                            <select class="form-select" name="role" required>
-                                <option value="student" {% if user.role=='student' %}selected{% endif %}>Student</option>
-                                <option value="faculty" {% if user.role=='faculty' %}selected{% endif %}>Faculty</option>
-                                <option value="supervisor" {% if user.role=='supervisor' %}selected{% endif %}>Supervisor</option>
-                                <option value="admin" {% if user.role=='admin' %}selected{% endif %}>Admin</option>
-                            </select>
-                        </div>
-                        <div class="mb-3"><label class="form-label">New Password (leave blank to keep unchanged)</label><input type="password" class="form-control" name="password"></div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
+            {% for user in users %}
     <!-- Delete User Modal -->
     <div class="modal fade" id="deleteUserModal{{ user.id }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
@@ -1414,6 +2017,7 @@
                 <div class="modal-header"><h5 class="modal-title">Confirm Delete</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <form action="{{ url_for('admin_delete_user', user_id=user.id) }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="next" value="{{ request.full_path }}">
                     <div class="modal-body">
                         <p>Are you sure you want to delete <strong>{{ user.first_name }} {{ user.last_name }}</strong>?</p>
                     </div>
@@ -1555,6 +2159,53 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
+    <!-- SocketIO Library -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
+    <!-- Real-time Updates Module -->
+    <script src="{{ url_for('static', filename='js/realtime-updates.js') }}"></script>
+    
+    <!-- Initialize Real-time Updates for Admin -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize real-time updates for admin dashboard
+            const realtimeUpdates = new RealtimeUpdates({
+                role: 'admin',
+                userId: {{ current_user.id }},
+                updateInterval: 5000 // Update every 5 seconds
+            });
+
+            // Handle dashboard updates
+            realtimeUpdates.on('onDashboardUpdate', function(data) {
+                console.log('Admin dashboard updated:', data);
+                // Update dashboard counters
+                if (data.users_count !== undefined) {
+                    const usersCounter = document.querySelector('[data-stat="users"]');
+                    if (usersCounter) usersCounter.textContent = data.users_count;
+                }
+                if (data.projects_count !== undefined) {
+                    const projectsCounter = document.querySelector('[data-stat="projects"]');
+                    if (projectsCounter) projectsCounter.textContent = data.projects_count;
+                }
+            });
+
+            // Handle task updates
+            document.addEventListener('taskUpdated', function(e) {
+                const data = e.detail;
+                console.log('Task updated for admin:', data);
+                // Show notification
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('Task Updated', { body: 'A task has been updated', tag: 'task-update' });
+                }
+            });
+
+            // Listen for browser notifications permission
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        });
+    </script>
+    
     <script>
         // Enhanced section navigation
         document.addEventListener('DOMContentLoaded', function() {
@@ -1572,8 +2223,27 @@
                 if (document.getElementById(targetSection)) {
                     document.getElementById(targetSection).classList.add('active');
                 }
+                // Update the browser hash for direct reload/navigation, but keep dashboard clean
+                if (window.history && typeof window.history.replaceState === 'function') {
+                    const baseUrl = window.location.pathname + window.location.search;
+                    const newUrl = targetSection === 'dashboard'
+                        ? baseUrl
+                        : baseUrl + '#' + targetSection;
+                    window.history.replaceState(null, '', newUrl);
+                }
                 // Scroll to top
                 window.scrollTo(0, 0);
+            }
+
+            function getCurrentSection() {
+                if (window.location.hash) {
+                    const section = window.location.hash.replace('#', '').trim();
+                    if (section && document.getElementById(section)) {
+                        return section;
+                    }
+                }
+                const activeSection = document.querySelector('.content-section.active');
+                return activeSection ? activeSection.id : 'dashboard';
             }
 
             sectionLinks.forEach(link => {
@@ -1583,6 +2253,49 @@
                     switchSection(targetSection);
                 });
             });
+
+            const resetModalForm = function(modalId, formId) {
+                const modalEl = document.getElementById(modalId);
+                if (!modalEl) return;
+                modalEl.addEventListener('show.bs.modal', function () {
+                    const form = document.getElementById(formId);
+                    if (form) {
+                        form.reset();
+                        form.querySelectorAll('input, select, textarea').forEach(function(field) {
+                            if (field.type !== 'hidden') {
+                                field.value = '';
+                                if (field.type === 'checkbox' || field.type === 'radio') {
+                                    field.checked = false;
+                                }
+                            }
+                        });
+                    }
+                });
+            };
+
+            resetModalForm('addUserModal', 'addUserForm');
+            resetModalForm('addProjectModal', 'addProjectForm');
+
+            document.querySelectorAll('form').forEach(function(form) {
+                form.addEventListener('submit', function() {
+                    const currentSection = getCurrentSection();
+                    if (currentSection && currentSection !== 'dashboard') {
+                        sessionStorage.setItem('dashboardRestoreSection', currentSection);
+                    }
+                });
+            });
+
+            // Restore section from URL hash (e.g. /dashboard_admin#users)
+            const hashSection = (window.location.hash || '').replace('#', '').trim();
+            if (hashSection && document.getElementById(hashSection)) {
+                switchSection(hashSection);
+            } else if (sessionStorage.getItem('dashboardRestoreSection')) {
+                const restoreSection = sessionStorage.getItem('dashboardRestoreSection');
+                sessionStorage.removeItem('dashboardRestoreSection');
+                if (restoreSection && document.getElementById(restoreSection)) {
+                    switchSection(restoreSection);
+                }
+            }
 
             // Check if we should navigate to users section (after search/form submit)
             if (sessionStorage.getItem('scrollToUsers') === 'true') {
@@ -1679,6 +2392,49 @@
                 });
             });
 
+            // Add User role-based fields
+            const addUserRole = document.getElementById('addUserRole');
+            const studentFields = document.getElementById('studentFields');
+            const staffFields = document.getElementById('staffFields');
+            const studentFieldIds = ['studentDepartment', 'studentProgram', 'studentSemester', 'studentSection', 'studentBatch'];
+            const staffFieldIds = ['staffDepartment', 'staffDegree'];
+
+            function setRequired(ids, isRequired) {
+                ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.required = isRequired;
+                    }
+                });
+            }
+
+            function toggleSectionInputs(sectionEl, enabled) {
+                if (!sectionEl) return;
+                sectionEl.querySelectorAll('input, select, textarea').forEach(el => {
+                    el.disabled = !enabled;
+                });
+            }
+
+            function toggleRoleFields() {
+                const role = addUserRole ? addUserRole.value : '';
+                const isStudent = role === 'student';
+                const isStaff = role === 'supervisor' || role === 'cordinator';
+
+                if (studentFields) studentFields.classList.toggle('d-none', !isStudent);
+                if (staffFields) staffFields.classList.toggle('d-none', !isStaff);
+
+                toggleSectionInputs(studentFields, isStudent);
+                toggleSectionInputs(staffFields, isStaff);
+
+                setRequired(studentFieldIds, isStudent);
+                setRequired(staffFieldIds, isStaff);
+            }
+
+            if (addUserRole) {
+                addUserRole.addEventListener('change', toggleRoleFields);
+                toggleRoleFields();
+            }
+
             function getSemesterSuffix(semester) {
                 const num = parseInt(semester);
                 if (num === 1) return 'st';
@@ -1694,22 +2450,33 @@
                 button.addEventListener('click', function () {
                     const groupId = this.getAttribute('data-group-id');
                     const url = "{{ url_for('admin_group_members', group_id=0) }}".replace('0', groupId);
-                    document.querySelector('#membersModal .modal-body').innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary" role="status"></div></div>';
+                    document.getElementById('membersModalSummary').innerHTML = '';
+                    document.getElementById('membersModalList').innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary" role="status"></div></div>';
                     membersModalInstance.show();
                     fetch(url)
                         .then(response => response.json())
-                        .then(members => {
+                        .then(data => {
+                            const summaryItems = [];
+                            summaryItems.push('<div class="row g-2">');
+                            summaryItems.push('<div class="col-12"><div class="border rounded p-2 bg-light"><div class="small text-muted">Group ID</div><div class="fw-semibold">' + (data.group_id || 'N/A') + '</div></div></div>');
+                            summaryItems.push('<div class="col-12"><div class="border rounded p-2 bg-light"><div class="small text-muted">Project Title</div><div class="fw-semibold">' + (data.project_title || 'N/A') + '</div></div></div>');
+                            summaryItems.push('<div class="col-12"><div class="border rounded p-2 bg-light"><div class="small text-muted">Supervisor Name</div><div class="fw-semibold">' + (data.supervisor_name || 'N/A') + '</div></div></div>');
+                            summaryItems.push('<div class="col-12"><div class="border rounded p-2 bg-light"><div class="small text-muted">Proposal Title</div><div class="fw-semibold">' + (data.proposal_title || 'N/A') + '</div></div></div>');
+                            summaryItems.push('<div class="col-12"><div class="border rounded p-2 bg-light"><div class="small text-muted">Proposal Accepted By Coordinator</div><div class="fw-semibold">' + (data.proposal_accepted_by || 'N/A') + '</div></div></div>');
+                            summaryItems.push('</div>');
+                            document.getElementById('membersModalSummary').innerHTML = summaryItems.join('');
+
                             let html = '';
-                            if (members.length > 0) {
+                            if (data.members && data.members.length > 0) {
                                 html = '<ul class="list-group">';
-                                members.forEach(m => { html += '<li class="list-group-item">' + m.name + ' (' + m.email + ')</li>'; });
+                                data.members.forEach(m => { html += '<li class="list-group-item">' + m.name + ' (' + m.email + ')</li>'; });
                                 html += '</ul>';
                             } else {
-                                html = '<p class="text-muted">No members assigned</p>';
+                                html = '<p class="text-muted mb-0">No members assigned</p>';
                             }
-                            document.querySelector('#membersModal .modal-body').innerHTML = html;
+                            document.getElementById('membersModalList').innerHTML = html;
                         })
-                        .catch(err => { console.error(err); document.querySelector('#membersModal .modal-body').innerHTML = '<p class="text-danger">Error loading members</p>'; });
+                        .catch(err => { console.error(err); document.getElementById('membersModalList').innerHTML = '<p class="text-danger mb-0">Error loading members</p>'; });
                 });
             });
 

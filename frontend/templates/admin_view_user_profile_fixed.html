@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - Admin Dashboard</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Modern CSS -->
+    <link href="{{ url_for('static', filename='css/modern-ui.css') }}" rel="stylesheet">
+    <!-- Admin Dark Green Theme -->
+    <link href="{{ url_for('static', filename='css/admin-dark-green.css') }}" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        .profile-header {
+            background: linear-gradient(135deg, var(--admin-dark-primary) 0%, rgba(6, 95, 70, 0.8) 100%);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            color: white;
+        }
+        
+        .profile-card {
+            background: var(--admin-dark-card);
+            border: 1px solid var(--admin-dark-border);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--admin-dark-shadow-md);
+        }
+        
+        .profile-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .info-item {
+            padding: 1rem;
+            background: rgba(6, 95, 70, 0.1);
+            border-radius: 0.5rem;
+            border-left: 3px solid var(--admin-dark-primary);
+        }
+        
+        .info-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--admin-dark-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--admin-dark-text-primary);
+            margin-top: 0.5rem;
+        }
+        
+        .role-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            display: inline-block;
+            margin-top: 0.5rem;
+        }
+        
+        .role-student { background: var(--admin-dark-info); }
+        .role-teacher { background: var(--admin-dark-warning); }
+        .role-supervisor { background: var(--admin-dark-success); }
+        .role-admin { background: var(--admin-dark-danger); }
+        
+        .form-control {
+            background: var(--admin-dark-input);
+            border: 1px solid var(--admin-dark-border);
+            color: var(--admin-dark-text-primary);
+        }
+        
+        .form-control:focus {
+            background: var(--admin-dark-input);
+            border-color: var(--admin-dark-primary);
+            color: var(--admin-dark-text-primary);
+            box-shadow: 0 0 0 0.2rem rgba(6, 95, 70, 0.25);
+        }
+        
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--admin-dark-text-secondary);
+            text-decoration: none;
+            margin-bottom: 1rem;
+            transition: color 0.3s;
+        }
+        
+        .back-button:hover {
+            color: var(--admin-dark-primary);
+        }
+        
+        .alert {
+            background: var(--admin-dark-card);
+            border: 1px solid var(--admin-dark-border);
+            color: var(--admin-dark-text-primary);
+        }
+        
+        .alert-success {
+            background: rgba(52, 211, 153, 0.1);
+            border-color: var(--admin-dark-success);
+        }
+        
+        .alert-danger {
+            background: rgba(244, 63, 94, 0.1);
+            border-color: #f03f5e;
+        }
+
+        .editable-group .input-group-text {
+            background: transparent;
+            border-left: 0;
+        }
+
+        .editable-group .form-control[readonly] {
+            opacity: 0.95;
+        }
+
+        .edit-toggle {
+            border: 1px solid var(--admin-dark-border);
+            color: var(--admin-dark-text-secondary);
+            background: rgba(6, 95, 70, 0.08);
+        }
+
+        .edit-toggle:hover {
+            color: var(--admin-dark-primary);
+            border-color: var(--admin-dark-primary);
+        }
+    </style>
+</head>
+<body style="background: var(--admin-dark-bg); color: var(--admin-dark-text-primary);">
+    <div class="container-fluid" style="padding: 2rem 1rem;">
+        <a href="{{ url_for('dashboard_admin') }}" class="back-button">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+        
+        <div class="profile-header">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-white rounded-circle p-3">
+                    <i class="bi bi-person-circle" style="font-size: 2rem; color: var(--admin-dark-primary);"></i>
+                </div>
+                <div>
+                    <h1 class="mb-1">{{ user.first_name }} {{ user.last_name }}</h1>
+                    <p class="mb-0">{{ user.email }}</p>
+                </div>
+            </div>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' }} alert-dismissible fade show" role="alert">
+                        <i class="bi bi-{{ 'exclamation-circle' if category == 'danger' else 'check-circle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Profile Information -->
+        <div class="profile-card">
+            <h3 style="color: var(--admin-dark-text-primary); margin-bottom: 1.5rem;">
+                <i class="bi bi-info-circle" style="color: var(--admin-dark-primary);"></i> User Information (Editable)
+            </h3>
+
+            <div class="alert alert-info" role="alert">
+                <i class="bi bi-pencil-square"></i>
+                Click the pencil icon next to a field to edit it.
+            </div>
+
+            <form method="POST" action="{{ url_for('admin_update_user', user_id=user.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">First Name</label>
+                        <div class="input-group editable-group">
+                            <input type="text" class="form-control editable-field" id="first_name" name="first_name" value="{{ user.first_name or '' }}" readonly required>
+                            <button class="btn edit-toggle" type="button" data-target="first_name"><i class="bi bi-pen"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Last Name</label>
+                        <div class="input-group editable-group">
+                            <input type="text" class="form-control editable-field" id="last_name" name="last_name" value="{{ user.last_name or '' }}" readonly required>
+                            <button class="btn edit-toggle" type="button" data-target="last_name"><i class="bi bi-pen"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        <div class="input-group editable-group">
+                            <input type="email" class="form-control editable-field" id="email" name="email" value="{{ user.email or '' }}" readonly required>
+                            <button class="btn edit-toggle" type="button" data-target="email"><i class="bi bi-pen"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Role</label>
+                        <div class="input-group editable-group">
+                            <select class="form-select editable-select" id="role" name="role" disabled>
+                                <option value="student" {% if user.role == 'student' %}selected{% endif %}>Student</option>
+                                <option value="supervisor" {% if user.role == 'supervisor' %}selected{% endif %}>Supervisor</option>
+                                <option value="cordinator" {% if user.role == 'cordinator' %}selected{% endif %}>Cordinator</option>
+                                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                            </select>
+                            <button class="btn edit-toggle" type="button" data-target="role"><i class="bi bi-pen"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Account Created</label>
+                        <input type="text" class="form-control" value="{{ user.created_at.strftime('%d %b %Y, %H:%M') if user.created_at else 'N/A' }}" readonly>
+                    </div>
+                </div>
+
+                <div id="studentFields" class="mt-4 {% if user.role != 'student' %}d-none{% endif %}">
+                    <h5 class="mb-3">Student Details</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Department</label>
+                            <div class="input-group editable-group">
+                                <input type="text" class="form-control editable-field" id="department_student" name="department" value="{{ user.department or '' }}" readonly>
+                                <button class="btn edit-toggle" type="button" data-target="department_student"><i class="bi bi-pen"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Program</label>
+                            <div class="input-group editable-group">
+                                <select class="form-select editable-select" id="program" name="program" disabled>
+                                    <option value="">Select program</option>
+                                    <option value="CS" {% if user.program == 'CS' %}selected{% endif %}>CS</option>
+                                    <option value="IT" {% if user.program == 'IT' %}selected{% endif %}>IT</option>
+                                    <option value="AI" {% if user.program == 'AI' %}selected{% endif %}>AI</option>
+                                    <option value="SE" {% if user.program == 'SE' %}selected{% endif %}>SE</option>
+                                </select>
+                                <button class="btn edit-toggle" type="button" data-target="program"><i class="bi bi-pen"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Semester</label>
+                            <div class="input-group editable-group">
+                                <input type="number" min="1" max="12" class="form-control editable-field" id="semester" name="semester" value="{{ user.semester or '' }}" readonly>
+                                <button class="btn edit-toggle" type="button" data-target="semester"><i class="bi bi-pen"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Section</label>
+                            <div class="input-group editable-group">
+                                <input type="text" class="form-control editable-field" id="section" name="section" value="{{ user.section or '' }}" readonly>
+                                <button class="btn edit-toggle" type="button" data-target="section"><i class="bi bi-pen"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Batch</label>
+                            <div class="input-group editable-group">
+                                <input type="text" class="form-control editable-field" id="batch" name="batch" value="{{ user.batch or '' }}" readonly>
+                                <button class="btn edit-toggle" type="button" data-target="batch"><i class="bi bi-pen"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="staffFields" class="mt-4 {% if user.role not in ['supervisor', 'cordinator'] %}d-none{% endif %}">
+                    <h5 class="mb-3">Supervisor/Cordinator Details</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Teaching Department</label>
+                            <div class="input-group editable-group">
+                                <input type="text" class="form-control editable-field" id="department_staff" name="department" value="{{ user.department or '' }}" readonly>
+                                <button class="btn edit-toggle" type="button" data-target="department_staff"><i class="bi bi-pen"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Employee ID (Optional)</label>
+                            <div class="input-group editable-group">
+                                <input type="text" class="form-control editable-field" id="emp_id" name="emp_id" value="{{ user.emp_id or '' }}" readonly>
+                                <button class="btn edit-toggle" type="button" data-target="emp_id"><i class="bi bi-pen"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Highest Degree</label>
+                            <div class="input-group editable-group">
+                                <input type="text" class="form-control editable-field" id="highest_degree" name="highest_degree" value="{{ user.highest_degree or '' }}" readonly>
+                                <button class="btn edit-toggle" type="button" data-target="highest_degree"><i class="bi bi-pen"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Specialization</label>
+                            <div class="input-group editable-group">
+                                <input type="text" class="form-control editable-field" id="specialization" name="specialization" value="{{ user.specialization or '' }}" readonly>
+                                <button class="btn edit-toggle" type="button" data-target="specialization"><i class="bi bi-pen"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i> Save Updated Information
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Password Reset Section -->
+        <div class="profile-card">
+            <h3 style="color: var(--admin-dark-text-primary); margin-bottom: 1.5rem;">
+                <i class="bi bi-key" style="color: #f03f5e;"></i> Reset User Password
+            </h3>
+            
+            <div class="alert alert-info" role="alert">
+                <i class="bi bi-info-circle"></i>
+                <strong>Password Reset:</strong> Use this form to set a new password for this user. The user will need to use this new password to log in.
+            </div>
+            
+            <form method="POST" action="{{ url_for('admin_reset_user_password', user_id=user.id) }}" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-3">
+                    <label for="newPassword" class="form-label">New Password <span style="color: #f03f5e;">*</span></label>
+                          <input type="password" class="form-control" id="newPassword" name="new_password" required 
+                              placeholder="Enter new password (min 8 characters)">
+                          <small class="text-muted">Password must be at least 8 characters long</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="confirmPassword" class="form-label">Confirm Password <span style="color: #f03f5e;">*</span></label>
+                    <input type="password" class="form-control" id="confirmPassword" name="confirm_password" required 
+                           placeholder="Confirm new password">
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="background: #f03f5e; border: none;">
+                    <i class="bi bi-lock"></i> Reset Password
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleRoleSections() {
+            const roleEl = document.getElementById('role');
+            const studentFields = document.getElementById('studentFields');
+            const staffFields = document.getElementById('staffFields');
+            if (!roleEl || !studentFields || !staffFields) return;
+
+            const role = roleEl.value;
+            const showStudent = role === 'student';
+            const showStaff = role === 'supervisor' || role === 'cordinator';
+
+            studentFields.classList.toggle('d-none', !showStudent);
+            staffFields.classList.toggle('d-none', !showStaff);
+
+            studentFields.querySelectorAll('input, select, textarea').forEach(el => {
+                el.disabled = !showStudent;
+            });
+            staffFields.querySelectorAll('input, select, textarea').forEach(el => {
+                el.disabled = !showStaff;
+            });
+        }
+
+        document.querySelectorAll('.edit-toggle').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.getAttribute('data-target');
+                const field = document.getElementById(targetId);
+                if (!field) return;
+
+                if (field.tagName === 'SELECT') {
+                    field.disabled = !field.disabled;
+                } else {
+                    field.readOnly = !field.readOnly;
+                }
+
+                btn.classList.toggle('btn-success');
+                btn.classList.toggle('edit-toggle');
+
+                if (targetId === 'role') {
+                    toggleRoleSections();
+                    field.addEventListener('change', toggleRoleSections);
+                }
+            });
+        });
+
+        toggleRoleSections();
+    </script>
+</body>
+</html>

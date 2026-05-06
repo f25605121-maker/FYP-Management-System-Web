@@ -28,8 +28,8 @@
                     <hr>
                     {% if user.role == 'admin' %}
                         <a href="{{ url_for('dashboard_admin') }}" class="btn btn-secondary">Back to Dashboard</a>
-                    {% elif user.role in ('faculty', 'teacher') %}
-                        <a href="{{ url_for('dashboard_faculty') }}" class="btn btn-secondary">Back to Dashboard</a>
+                    {% elif user.role in ('cordinator', 'teacher') %}
+                        <a href="{{ url_for('dashboard_cordinator') }}" class="btn btn-secondary">Back to Dashboard</a>
                     {% elif user.role == 'supervisor' %}
                         <a href="{{ url_for('dashboard_supervisor') }}" class="btn btn-secondary">Back to Dashboard</a>
                     {% elif user.role == 'student' %}

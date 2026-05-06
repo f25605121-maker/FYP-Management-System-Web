@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Audit Logs - FYP Management System</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Modern CSS -->
+    <link href="{{ url_for('static', filename='css/modern-ui.css') }}" rel="stylesheet">
+    
+    <style>
+        .log-entry {
+            border-left: 4px solid #e5e7eb;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #f9fafb;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+        
+        .log-entry:hover {
+            background: #f3f4f6;
+            transform: translateX(2px);
+        }
+        
+        .log-entry.admin-login {
+            border-left-color: #10b981;
+        }
+        
+        .log-entry.warning {
+            border-left-color: #f59e0b;
+            background: #fef3c7;
+        }
+        
+        .log-entry.danger {
+            border-left-color: #ef4444;
+            background: #fee2e2;
+        }
+        
+        .log-entry.security {
+            border-left-color: #8b5cf6;
+            background: #ede9fe;
+        }
+        
+        .filter-badge {
+            background: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            margin-right: 0.5rem;
+        }
+        
+        .timestamp {
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .ip-address {
+            background: #f3f4f6;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard_admin_enhanced') }}">
+                <i class="bi bi-arrow-left text-primary"></i> Back to Admin Dashboard
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <a href="{{ url_for('export_admin_logs') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-download"></i> Export Logs
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid py-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h3 mb-1">
+                            <i class="bi bi-journal-text text-primary"></i> Admin Audit Logs
+                        </h1>
+                        <p class="text-muted">Complete audit trail of administrative activities</p>
+                    </div>
+                    <div class="text-end">
+                        <div class="filter-badge">
+                            <i class="bi bi-funnel"></i> Last 200 Entries
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-list-check text-success" style="font-size: 2rem;"></i>
+                        <h4 class="mt-2">{{ audit_logs|length }}</h4>
+                        <p class="text-muted mb-0">Total Entries</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-shield-check text-primary" style="font-size: 2rem;"></i>
+                        <h4 class="mt-2">{{ audit_logs|selectattr('action', 'equalto', 'ADMIN_LOGIN')|list|length }}</h4>
+                        <p class="text-muted mb-0">Admin Logins</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
+                        <h4 class="mt-2">{{ audit_logs|selectattr('action', 'contains', 'FAILED')|list|length }}</h4>
+                        <p class="text-muted mb-0">Failed Attempts</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-person-plus text-info" style="font-size: 2rem;"></i>
+                        <h4 class="mt-2">{{ audit_logs|selectattr('action', 'equalto', 'ADMIN_CREATED')|list|length }}</h4>
+                        <p class="text-muted mb-0">Admins Created</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audit Logs -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history"></i> Recent Activity
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if audit_logs %}
+                            {% for log in audit_logs|reverse %}
+                                <div class="log-entry 
+                                    {% if log.action == 'ADMIN_LOGIN' %}admin-login
+                                    {% elif 'FAILED' in log.action %}warning
+                                    {% elif 'UNAUTHORIZED' in log.action %}danger
+                                    {% elif 'SECURITY' in log.action.upper() or log.action in ['ADMIN_REAUTH_SUCCESS', 'ADMIN_REAUTH_FAILED'] %}security
+                                    {% endif %}">
+                                    
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <strong class="me-2">
+                                                    {% if log.action == 'ADMIN_LOGIN' %}
+                                                        <i class="bi bi-shield-check text-success"></i> Admin Login
+                                                    {% elif log.action == 'ADMIN_CREATED' %}
+                                                        <i class="bi bi-person-plus text-info"></i> Admin Created
+                                                    {% elif log.action == 'ADMIN_REAUTH_SUCCESS' %}
+                                                        <i class="bi bi-lock text-primary"></i> Re-auth Success
+                                                    {% elif log.action == 'ADMIN_REAUTH_FAILED' %}
+                                                        <i class="bi bi-lock text-danger"></i> Re-auth Failed
+                                                    {% elif 'FAILED_LOGIN' in log.action %}
+                                                        <i class="bi bi-x-circle text-warning"></i> Failed Login
+                                                    {% elif 'UNAUTHORIZED_ACCESS' in log.action %}
+                                                        <i class="bi bi-shield-x text-danger"></i> Unauthorized Access
+                                                    {% elif 'USER_DEACTIVATED' in log.action %}
+                                                        <i class="bi bi-person-dash text-warning"></i> User Deactivated
+                                                    {% elif 'PASSWORD_RESET_FORCED' in log.action %}
+                                                        <i class="bi bi-key text-info"></i> Password Reset Forced
+                                                    {% else %}
+                                                        <i class="bi bi-activity text-secondary"></i> {{ log.action.replace('_', ' ').title() }}
+                                                    {% endif %}
+                                                </strong>
+                                                
+                                                {% if log.admin_email %}
+                                                    <span class="badge bg-light text-dark ms-2">{{ log.admin_email }}</span>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            {% if log.details %}
+                                                <div class="mb-2">
+                                                    <small class="text-muted">
+                                                        {% for key, value in log.details.items() %}
+                                                            {% if key != 'created_by' and key != 'deactivated_by' and key != 'forced_by' %}
+                                                                <strong>{{ key.title() }}:</strong> {{ value }}
+                                                                {% if not loop.last %} • {% endif %}
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </small>
+                                                </div>
+                                            {% endif %}
+                                            
+                                            <div class="d-flex align-items-center text-muted small">
+                                                <span class="me-3">
+                                                    <i class="bi bi-geo-alt"></i> 
+                                                    <span class="ip-address">{{ log.ip_address }}</span>
+                                                </span>
+                                                <span class="timestamp">
+                                                    <i class="bi bi-clock"></i> {{ log.timestamp[:19] }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                                <h5 class="text-muted mt-3">No Audit Logs Found</h5>
+                                <p class="text-muted">Administrative activities will appear here once performed.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Auto-refresh logs every 60 seconds
+        let refreshInterval;
+        
+        function startAutoRefresh() {
+            refreshInterval = setInterval(function() {
+                location.reload();
+            }, 60000);
+        }
+        
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        }
+        
+        // Start auto-refresh when page loads
+        startAutoRefresh();
+        
+        // Stop auto-refresh when user is interacting
+        document.addEventListener('click', stopAutoRefresh);
+        document.addEventListener('keydown', stopAutoRefresh);
+        
+        // Resume auto-refresh after 2 minutes of inactivity
+        let inactivityTimer;
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(startAutoRefresh, 120000);
+        }
+        
+        document.addEventListener('click', resetInactivityTimer);
+        document.addEventListener('keydown', resetInactivityTimer);
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Create Group Project{% endblock %}
+{% block title %}Create Group{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -8,7 +8,7 @@
         <div class="col-md-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-folder-plus me-2"></i>Create New Group Project</h5>
+                    <h5 class="mb-0"><i class="bi bi-folder-plus me-2"></i>Create New Group</h5>
                 </div>
                 <div class="card-body">
                     <form id="projectGroupForm" action="{{ url_for('add_project_and_group') }}" method="post">
@@ -16,7 +16,7 @@
                         <div class="row">
                             <!-- Group Project Information -->
                             <div class="col-md-6">
-                                <h5 class="border-bottom pb-2 mb-3">Group Project Details</h5>
+                                <h5 class="border-bottom pb-2 mb-3">Group Details</h5>
                                 <div class="mb-3">
                                     <label for="group_id" class="form-label">Group ID <span
                                             class="text-danger">*</span></label>
@@ -24,46 +24,18 @@
                                         placeholder="e.g. G42">
                                     <small class="text-muted">Unique identifier for the group project</small>
                                 </div>
+
                                 <div class="mb-3">
-                                    <label for="project_title" class="form-label">Project Title <span
-                                            class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="project_title" name="project_title"
-                                        required placeholder="e.g. AI-based Traffic Management System">
-                                    <small class="text-muted">Name of the group project</small>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="supervisor_id" class="form-label">Supervisor <span
-                                            class="text-danger">*</span></label>
+                                    <label for="supervisor_id" class="form-label">Supervisor <span class="text-danger">*</span></label>
                                     <select class="form-select" id="supervisor_id" name="supervisor_id" required>
-                                        <option value="">Select a Supervisor</option>
+                                        <option value="">Select supervisor</option>
                                         {% for supervisor in supervisors %}
-                                        <option value="{{ supervisor.id }}">{{ supervisor.first_name }} {{
-                                            supervisor.last_name }}</option>
+                                        <option value="{{ supervisor.id }}">{{ supervisor.first_name }} {{ supervisor.last_name }}{% if supervisor.department %} ({{ supervisor.department }}){% endif %}</option>
                                         {% endfor %}
                                     </select>
-                                    <small class="text-muted">Select the faculty member or supervisor overseeing this
-                                        project</small>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="project_description" class="form-label">Project Description</label>
-                                    <textarea class="form-control" id="project_description" name="project_description"
-                                        rows="4"
-                                        placeholder="Describe the project objectives, scope, and technologies..."></textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="project_major" class="form-label">Project Major</label>
-                                    <select class="form-select" id="project_major" name="project_major">
-                                        <option value="">Select Major</option>
-                                        <option value="Computer Science">Computer Science</option>
-                                        <option value="Information Technology">Information Technology</option>
-                                        <option value="Software Engineering">Software Engineering</option>
-                                        <option value="Artificial Intelligence">Artificial Intelligence</option>
-                                        <option value="Data Science">Data Science</option>
-                                    </select>
+                                    <small class="text-muted">Choose the supervisor responsible for this group</small>
                                 </div>
                             </div>
-
-                            <!-- Group Members -->
                             <div class="col-md-6">
                                 <h5 class="border-bottom pb-2 mb-3">Group Members</h5>
                                 <div class="alert alert-info">
@@ -71,46 +43,39 @@
                                 </div>
 
                                 <div class="mb-3">
+                                    <label for="studentSearchInput" class="form-label">Search Students</label>
+                                    <input type="text" class="form-control mb-3" id="studentSearchInput" placeholder="Search by name, email, or department">
                                     <label class="form-label">Available Students for Group</label>
+                                    <p class="small text-muted mb-2">Choose up to 2 students and select one student as the group leader.</p>
                                     <div class="list-group" id="availableStudents">
-                                        <!-- Student 1 -->
-                                        <div class="list-group-item">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="selected_students"
-                                                    value="1" id="student1">
-                                                <label class="form-check-label" for="student1">
-                                                    <div><strong>Sheran Shah</strong></div>
-                                                    <small class="text-muted">sheran.shah@example.com</small>
-                                                    <span class="badge bg-primary ms-2">Computer Science</span>
-                                                </label>
+                                        {% if students %}
+                                            {% for student in students %}
+                                            <div class="list-group-item">
+                                                <div class="d-flex align-items-center justify-content-between">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_students"
+                                                            value="{{ student.id }}" id="student{{ student.id }}">
+                                                        <label class="form-check-label" for="student{{ student.id }}">
+                                                            <div><strong>{{ student.first_name }} {{ student.last_name }}</strong></div>
+                                                            <small class="text-muted">{{ student.email }}</small>
+                                                            <span class="badge bg-primary ms-2">{{ student.department or 'Unknown' }}</span>
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input leader-radio" type="radio" name="group_leader"
+                                                            value="{{ student.id }}" id="leader{{ student.id }}">
+                                                        <label class="form-check-label" for="leader{{ student.id }}">
+                                                            Leader
+                                                        </label>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-
-                                        <!-- Student 2 (Example) -->
-                                        <div class="list-group-item">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="selected_students"
-                                                    value="2" id="student2">
-                                                <label class="form-check-label" for="student2">
-                                                    <div><strong>Ahmed Khan</strong></div>
-                                                    <small class="text-muted">ahmed.khan@example.com</small>
-                                                    <span class="badge bg-success ms-2">Software Engineering</span>
-                                                </label>
+                                            {% endfor %}
+                                        {% else %}
+                                            <div class="list-group-item text-muted">
+                                                No available students are currently eligible to join a new group.
                                             </div>
-                                        </div>
-
-                                        <!-- Student 3 (Example) -->
-                                        <div class="list-group-item">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="selected_students"
-                                                    value="3" id="student3">
-                                                <label class="form-check-label" for="student3">
-                                                    <div><strong>Sarah Johnson</strong></div>
-                                                    <small class="text-muted">sarah.johnson@example.com</small>
-                                                    <span class="badge bg-info ms-2">Data Science</span>
-                                                </label>
-                                            </div>
-                                        </div>
+                                        {% endif %}
                                     </div>
                                 </div>
 
@@ -133,7 +98,7 @@
                                     <button type="button" class="btn btn-secondary"
                                         onclick="window.history.back();">Cancel</button>
                                     <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-save me-2"></i>Create Group Project
+                                        <i class="bi bi-save me-2"></i>Create Group
                                     </button>
                                 </div>
                             </div>
@@ -151,14 +116,46 @@
         const checkboxes = document.querySelectorAll('input[name="selected_students"]');
         const studentCount = document.getElementById('studentCount');
         const studentProgress = document.getElementById('studentProgress');
+        const studentSearchInput = document.getElementById('studentSearchInput');
+        const availableStudentItems = document.querySelectorAll('#availableStudents .list-group-item');
+        const leaderRadios = document.querySelectorAll('.leader-radio');
 
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', updateSelectedCount);
         });
 
+        leaderRadios.forEach(radio => {
+            radio.addEventListener('change', function () {
+                if (this.checked) {
+                    const matchingCheckbox = document.querySelector(`#student${this.value}`);
+                    if (matchingCheckbox && !matchingCheckbox.checked) {
+                        matchingCheckbox.checked = true;
+                        updateSelectedCount();
+                    }
+                }
+            });
+        });
+
+        studentSearchInput.addEventListener('input', function () {
+            const query = this.value.trim().toLowerCase();
+            availableStudentItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+
         function updateSelectedCount() {
             const selectedCount = document.querySelectorAll('input[name="selected_students"]:checked').length;
             studentCount.textContent = selectedCount;
+
+            // If the leader was unselected, clear the leader radio choice
+            const selectedLeader = document.querySelector('input[name="group_leader"]:checked');
+            if (selectedLeader) {
+                const leaderCheckbox = document.querySelector(`#student${selectedLeader.value}`);
+                if (!leaderCheckbox || !leaderCheckbox.checked) {
+                    selectedLeader.checked = false;
+                }
+            }
 
             // Update progress bar
             const progressPercent = (selectedCount / 2) * 100;
@@ -196,6 +193,21 @@
             if (selectedCount > 2) {
                 event.preventDefault();
                 alert('You can select a maximum of 2 students.');
+                return false;
+            }
+
+            const leaderRadio = document.querySelector('input[name="group_leader"]:checked');
+            if (!leaderRadio) {
+                event.preventDefault();
+                alert('Please select one student as the group leader.');
+                return false;
+            }
+
+            const leaderId = leaderRadio.value;
+            const leaderCheckbox = document.querySelector(`#student${leaderId}`);
+            if (!leaderCheckbox || !leaderCheckbox.checked) {
+                event.preventDefault();
+                alert('The selected leader must be one of the chosen group members.');
                 return false;
             }
 

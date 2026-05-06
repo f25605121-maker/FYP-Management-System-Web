@@ -14,10 +14,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #667eea;
-            --primary-dark: #5a67d8;
-            --accent: #764ba2;
-            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --accent: #059669;
+            --gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
             --gradient-warm: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             --gradient-cool: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             --gradient-sun: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
@@ -475,8 +475,6 @@
                 FYP Management System
             </a>
             <div class="nav-buttons">
-                <a href="{{ url_for('login') }}" class="btn-nav btn-nav-outline">Login</a>
-                <a href="{{ url_for('signup') }}" class="btn-nav btn-nav-fill">Sign Up</a>
             </div>
         </div>
     </nav>
@@ -500,11 +498,8 @@
                             A comprehensive platform for students, teachers, supervisors, and administrators to manage the entire FYP process — from proposal to viva.
                         </p>
                         <div class="hero-buttons">
-                            <a href="{{ url_for('signup') }}" class="btn-hero btn-hero-primary">
+                            <a href="{{ url_for('login') }}" class="btn-hero btn-hero-primary">
                                 <i class="bi bi-rocket-takeoff"></i> Get Started Free
-                            </a>
-                            <a href="{{ url_for('login') }}" class="btn-hero btn-hero-outline">
-                                <i class="bi bi-box-arrow-in-right"></i> Login
                             </a>
                         </div>
                         <div class="stats-strip">
@@ -583,7 +578,7 @@
                         <div class="step-card">
                             <div class="step-number">1</div>
                             <h4>Create Account</h4>
-                            <p>Sign up with your university email and select your role — student, teacher, supervisor, or admin.</p>
+                            <p>Sign up with your university email and select your role — student, teacher, or supervisor.</p>
                         </div>
                     </div>
                     <div class="col-md-4 fade-up">
@@ -609,7 +604,7 @@
             <div class="container">
                 <div class="cta-box fade-up">
                     <h2>Ready to Simplify Your FYP Journey?</h2>
-                    <p>Join your classmates and faculty on the platform built for final year projects.</p>
+                    <p>Join your classmates and cordinator on the platform built for final year projects.</p>
                     <a href="{{ url_for('signup') }}" class="btn-cta">
                         <i class="bi bi-arrow-right-circle-fill"></i> Get Started Now
                     </a>
