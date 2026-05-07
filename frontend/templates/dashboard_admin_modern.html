@@ -2519,5 +2519,36 @@
     </script>
     <!-- Auto-refresh -->
     <script src="{{ url_for('static', filename='js/auto-refresh.js') }}"></script>
+    <!-- Live Clock Update -->
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const dateOptions = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            };
+            const timeOptions = { 
+                hour: 'numeric', 
+                minute: '2-digit', 
+                hour12: true 
+            };
+            
+            const dateStr = now.toLocaleDateString('en-US', dateOptions);
+            const timeStr = now.toLocaleTimeString('en-US', timeOptions);
+            
+            // Update the header date pill
+            const dateMain = document.querySelector('.header-date-pill .date-main');
+            const dateSub = document.querySelector('.header-date-pill .date-sub');
+            
+            if (dateMain) dateMain.textContent = dateStr;
+            if (dateSub) dateSub.textContent = timeStr;
+        }
+        
+        // Update clock immediately and then every second
+        updateClock();
+        setInterval(updateClock, 1000);
+    </script>
 </body>
 </html>
