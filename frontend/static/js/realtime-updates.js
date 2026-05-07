@@ -187,33 +187,16 @@ class RealtimeUpdates {
      * Handle dashboard update - override in specific implementations
      */
     onDashboardUpdate(data) {
-        // Show visual feedback
-        this.showUpdateIndicator();
+        // Update only the timestamp and optionally highlight changed values.
+        this.updateLastUpdatedTime();
+        this.highlightUpdatedElements();
         
-        // Dispatch custom event for dashboard to handle
         const event = new CustomEvent('realtimeUpdate', { detail: data });
         document.dispatchEvent(event);
         
         if (this.callbacks.onDashboardUpdate) {
             this.callbacks.onDashboardUpdate(data);
         }
-    }
-
-    /**
-     * Show visual indicator that dashboard is updating
-     */
-    showUpdateIndicator() {
-        // Update timestamp
-        this.updateLastUpdatedTime();
-        
-        // Show loading indicator briefly
-        this.showLoadingIndicator();
-        
-        // Highlight updated elements
-        this.highlightUpdatedElements();
-        
-        // Show toast notification
-        this.showUpdateToast();
     }
 
     /**

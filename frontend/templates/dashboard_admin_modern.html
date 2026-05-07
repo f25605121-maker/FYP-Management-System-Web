@@ -2517,8 +2517,6 @@
             });
         });
     </script>
-    <!-- Auto-refresh -->
-    <script src="{{ url_for('static', filename='js/auto-refresh.js') }}"></script>
     <!-- Live Clock Update -->
     <script>
         function updateClock() {
@@ -2538,7 +2536,6 @@
             const dateStr = now.toLocaleDateString('en-US', dateOptions);
             const timeStr = now.toLocaleTimeString('en-US', timeOptions);
             
-            // Update the header date pill
             const dateMain = document.querySelector('.header-date-pill .date-main');
             const dateSub = document.querySelector('.header-date-pill .date-sub');
             
@@ -2546,7 +2543,6 @@
             if (dateSub) dateSub.textContent = timeStr;
         }
         
-        // Update clock immediately and then every second
         updateClock();
         setInterval(updateClock, 1000);
     </script>
