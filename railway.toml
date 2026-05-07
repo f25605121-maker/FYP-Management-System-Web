@@ -6,3 +6,6 @@ dockerfilePath = "Dockerfile"
 healthcheckPath = "/health"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
+startCommand = "python start.py"
+
+
